@@ -13,26 +13,44 @@ from urllib.parse import urlsplit
 from .corpus import EvidenceStore
 from .engine import PrototypeEngine
 from .evaluation import run_behavioral_suite
+from .plithos_store import PlithosEvidenceStore
 from .policy import BoundaryPolicy
 
 
 MAX_REQUEST_BYTES = 32 * 1024
 
 
-def build_default_engine(root: Path) -> PrototypeEngine:
-    return PrototypeEngine(
-        EvidenceStore(root / "prototype" / "corpus" / "oi-policy-demo.v0.1.json"),
-        BoundaryPolicy(root / "config" / "prototype_policy.v0.2.json"),
-    )
+def build_default_engine(
+    root: Path,
+    corpus_install: Path | None = None,
+    *,
+    force_demo: bool = False,
+) -> PrototypeEngine:
+    policy = BoundaryPolicy(root / "config" / "prototype_policy.v0.2.json")
+    install_dir = corpus_install or (root / "artifacts" / "plithos")
+    if not force_demo and (install_dir / "installed.json").is_file():
+        store = PlithosEvidenceStore(install_dir)
+    else:
+        store = EvidenceStore(root / "prototype" / "corpus" / "oi-policy-demo.v0.1.json")
+    return PrototypeEngine(store, policy)
 
 
 class PrototypeServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address: tuple[str, int], root: Path):
+    def __init__(
+        self,
+        address: tuple[str, int],
+        root: Path,
+        corpus_install: Path | None = None,
+        *,
+        force_demo: bool = False,
+    ):
         self.root = root
         self.static_root = root / "prototype"
-        self.engine = build_default_engine(root)
+        self.engine = build_default_engine(
+            root, corpus_install=corpus_install, force_demo=force_demo
+        )
         super().__init__(address, PrototypeHandler)
 
 
@@ -40,19 +58,9 @@ class PrototypeHandler(BaseHTTPRequestHandler):
     server: PrototypeServer
 
     def log_message(self, _format: str, *_args: object) -> None:
-        # Questions are not logged. The development server stays quiet by default.
         return
 
     def _request_is_local(self) -> bool:
-        """Refuse requests that did not address this server as loopback.
-
-        The socket already binds to 127.0.0.1, but a web page in the same
-        browser can still send requests to a loopback port, and DNS rebinding
-        can point a hostile name at it. Checking the Host header (and the
-        Origin header, when a browser sends one) closes that class before it
-        matters, so the pattern is already right when something valuable sits
-        behind this server.
-        """
         port = self.server.server_address[1]
         allowed_hosts = {
             "127.0.0.1", f"127.0.0.1:{port}",
@@ -165,15 +173,33 @@ class PrototypeHandler(BaseHTTPRequestHandler):
         self._send_json(self.server.engine.ask(question).as_dict())
 
 
-def serve(root: Path, port: int) -> None:
-    server = PrototypeServer(("127.0.0.1", port), root)
+def serve(
+    root: Path,
+    port: int,
+    corpus_install: Path | None = None,
+    *,
+    force_demo: bool = False,
+) -> None:
+    server = PrototypeServer(
+        ("127.0.0.1", port),
+        root,
+        corpus_install=corpus_install,
+        force_demo=force_demo,
+    )
     host, selected_port = server.server_address
+    status = server.engine.status()
     print(f"OI research prototype: http://{host}:{selected_port}")
+    print(
+        f"Corpus mode: {status['corpus_mode']} · "
+        f"{status['record_count']} searchable text records"
+    )
     print("Loopback only; questions are not written to logs or disk.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        close = getattr(server.engine.evidence_store, "close", None)
+        if callable(close):
+            close()
         server.server_close()
-
