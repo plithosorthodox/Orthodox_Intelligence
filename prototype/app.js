@@ -5,6 +5,9 @@ const versionsNode = document.querySelector("#versions");
 const messagesNode = document.querySelector("#messages");
 const form = document.querySelector("#ask-form");
 const questionNode = document.querySelector("#question");
+const corpusDescription = document.querySelector("#corpus-description");
+const corpusSummary = document.querySelector("#corpus-summary");
+const welcomeMessage = document.querySelector("#welcome-message");
 const evaluationPanel = document.querySelector("#evaluation-panel");
 const evaluationSummary = document.querySelector("#evaluation-summary");
 const evaluationLimit = document.querySelector("#evaluation-limit");
@@ -45,8 +48,16 @@ function addAnswer(answer) {
   for (const evidence of answer.evidence || []) {
     const card = element("section", "evidence-card");
     card.append(element("h3", "", evidence.title));
+    card.append(element("p", "classification", evidence.source_class));
     card.append(element("blockquote", "", evidence.display_text));
-    card.append(element("cite", "", `${evidence.citation_label} · ${evidence.segment_id}`));
+    const locator = evidence.source_locator ? ` · ${evidence.source_locator}` : "";
+    card.append(
+      element(
+        "cite",
+        "",
+        `${evidence.citation_label} · ${evidence.segment_id}${locator}`,
+      ),
+    );
     article.append(card);
   }
   messagesNode.append(article);
@@ -111,11 +122,29 @@ document.querySelector("#run-evaluation").addEventListener("click", async (event
 
 request("/api/status")
   .then((status) => {
-    statusNode.textContent = `Offline core ready · ${status.record_count} demo records`;
+    if (status.corpus_mode === "plithos") {
+      statusNode.textContent =
+        `Plithos ready · ${status.entity_count.toLocaleString()} entities · ` +
+        `${status.record_count.toLocaleString()} texts`;
+      corpusDescription.textContent =
+        "This build is using the verified local English Plithos package. Search, citation resolution, exact-text retrieval, and content-hash verification run locally; no language model is loaded yet.";
+      corpusSummary.textContent =
+        `Installed features: ${(status.features || []).join(", ")}. ` +
+        `Exact-text retrieval: ${status.supports_exact_text ? "available" : "unavailable"}.`;
+      welcomeMessage.textContent =
+        "Search for a saint, prayer, Scripture passage, glossary term, or Library text. Results below are retrieved evidence, not a synthesized AI answer.";
+    } else {
+      statusNode.textContent = `Demo mode · ${status.record_count} records`;
+      corpusDescription.textContent =
+        "No installed Plithos package was found, so the prototype is using its original project-policy demonstration corpus. Install the pinned corpus locally to exercise Orthodox evidence search.";
+      corpusSummary.textContent =
+        "Demonstration corpus only. Run tools/install_plithos_corpus.py against the pinned plithos_corpus checkout to activate the real evidence package.";
+      welcomeMessage.textContent =
+        "Demo mode is active. Ask what OI is or how its evidence is governed, or install the Plithos package to search Orthodox source material.";
+    }
     statusNode.classList.add("ready");
     showVersions(status.versions);
   })
   .catch((error) => {
     statusNode.textContent = `Prototype unavailable · ${error.message}`;
   });
-
