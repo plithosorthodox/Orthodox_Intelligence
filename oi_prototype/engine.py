@@ -47,6 +47,7 @@ class PrototypeEngine:
         if self.model_runtime is None:
             model = "none-extractive-prototype"
             substrate = "not-applicable"
+            verifier = "prototype-verifier-v0.2"
         else:
             model = SOFIIA_DISPLAY_NAME
             selected = getattr(self.model_runtime, "model", None)
@@ -55,6 +56,7 @@ class PrototypeEngine:
                 "upstream_model_id",
                 "allenai/OLMo-2-1124-7B-Instruct",
             )
+            verifier = "prototype-verifier-v0.3"
         return {
             "application": __version__,
             "model": model,
@@ -65,7 +67,7 @@ class PrototypeEngine:
                 self.evidence_store, "search_version", "demo-fts5-bm25-v0.1"
             ),
             "boundary_policy": self.policy.version,
-            "verifier": "prototype-verifier-v0.3",
+            "verifier": verifier,
         }
 
     def status(self) -> dict[str, object]:
@@ -126,7 +128,7 @@ class PrototypeEngine:
                 return self._answer(
                     "evidence",
                     "exact_text",
-                    "Exact text was retrieved from the installed Plithos evidence package. Sofiia did not reconstruct it from model memory.",
+                    "Exact text was retrieved from the installed Plithos evidence package. The prototype did not reconstruct it from model memory.",
                     evidence=exact,
                 )
             return self._answer(
@@ -201,8 +203,9 @@ class PrototypeEngine:
             "this process is retrieving evidence rather than generating an answer."
             if self.evidence_store.corpus_id == "plithos-english"
             else
-            "The demonstration corpus contains the passages below. This vertical "
-            "slice retrieves and verifies evidence; no local model runtime is connected."
+            "The demonstration corpus contains the passages below. This first "
+            "vertical slice retrieves and verifies evidence; it does not yet generate "
+            "a synthesized answer."
         )
         return self._answer(
             "evidence",
