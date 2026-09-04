@@ -5,6 +5,7 @@ const versionsNode = document.querySelector("#versions");
 const messagesNode = document.querySelector("#messages");
 const form = document.querySelector("#ask-form");
 const questionNode = document.querySelector("#question");
+const submitNode = form.querySelector("button[type=submit]");
 const corpusDescription = document.querySelector("#corpus-description");
 const corpusSummary = document.querySelector("#corpus-summary");
 const welcomeMessage = document.querySelector("#welcome-message");
@@ -112,14 +113,13 @@ form.addEventListener("submit", async (event) => {
   if (!question) return;
   addUserMessage(question);
   questionNode.value = "";
-  const submit = form.querySelector("button[type=submit]");
-  submit.disabled = true;
+  submitNode.disabled = true;
   try {
     addAnswer(await request("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({question})}));
   } catch (error) {
     addAnswer({response_class: "error", intent: "system", text: error.message, evidence: []});
   } finally {
-    submit.disabled = false;
+    submitNode.disabled = false;
     questionNode.focus();
   }
 });
@@ -157,18 +157,27 @@ document.querySelector("#run-evaluation").addEventListener("click", async (event
 request("/api/status")
   .then(async (status) => {
     if (status.corpus_mode === "plithos") {
-      statusNode.textContent = `Plithos ready · ${status.entity_count.toLocaleString()} entities · ${status.record_count.toLocaleString()} texts`;
-      corpusDescription.textContent = "This build is using the verified local English Plithos package. Search, exact-text retrieval, calendar reckoning, citation resolution, and content-hash verification run locally; no language model is loaded yet.";
-      corpusSummary.textContent = `Installed textual features: ${(status.features || []).join(", ")}. Calendar: ${status.calendar_available ? "Revised Julian + Julian" : "unavailable"}. Exact-text retrieval: ${status.supports_exact_text ? "available" : "unavailable"}.`;
-      welcomeMessage.textContent = "Search for a saint, prayer, Scripture passage, glossary term, or Library text. Results below are retrieved evidence, not a synthesized AI answer.";
+      if (status.generative_model_loaded) {
+        statusNode.textContent = `Sofiia v0.1 ready · ${status.entity_count.toLocaleString()} Plithos entities`;
+        corpusDescription.textContent = "Uvaha is using the verified local English Plithos package and the selected local Sofiia v0.1 model configuration. Retrieval, generation, citation checks, quotation checks, calendar reckoning, and content-hash verification remain on this device.";
+        welcomeMessage.textContent = "Ask Sofiia about the installed Plithos material. A generated answer is shown only after its cited segments and direct quotations pass the local verifier.";
+        submitNode.textContent = "Ask Sofiia";
+      } else {
+        statusNode.textContent = `Plithos ready · ${status.entity_count.toLocaleString()} entities · Sofiia not connected`;
+        corpusDescription.textContent = "Uvaha is using the verified local English Plithos package. Sofiia v0.1 is selected, but no local OLMo runtime is connected yet, so the prototype remains in evidence-search mode.";
+        welcomeMessage.textContent = "Search for a saint, prayer, Scripture passage, glossary term, or Library text. Connect the local Sofiia runtime to generate a verified answer.";
+        submitNode.textContent = "Search locally";
+      }
+      corpusSummary.textContent = `Installed textual features: ${(status.features || []).join(", ")}. Calendar: ${status.calendar_available ? "Revised Julian + Julian" : "unavailable"}. Exact-text retrieval: ${status.supports_exact_text ? "available" : "unavailable"}. Sofiia: ${status.generative_model_loaded ? "local runtime connected" : "selected, not connected"}.`;
     } else {
       statusNode.textContent = `Demo mode · ${status.record_count} records`;
-      corpusDescription.textContent = "No installed Plithos package was found, so the prototype is using its original project-policy demonstration corpus. Install the pinned corpus locally to exercise Orthodox evidence search and calendar lookup.";
+      corpusDescription.textContent = "No installed Plithos package was found, so Uvaha is using the original project-policy demonstration corpus. Install the pinned corpus locally before treating Sofiia as a Plithos-grounded prototype.";
       corpusSummary.textContent = "Demonstration corpus only.";
       welcomeMessage.textContent = "Demo mode is active. Install the Plithos package to search Orthodox source material and use the calendar.";
+      submitNode.textContent = status.generative_model_loaded ? "Ask Sofiia" : "Search locally";
     }
     statusNode.classList.add("ready");
     showVersions(status.versions);
     try { await setupCalendar(status); } catch (error) { corpusSummary.textContent += ` Calendar error: ${error.message}.`; }
   })
-  .catch((error) => { statusNode.textContent = `Prototype unavailable · ${error.message}`; });
+  .catch((error) => { statusNode.textContent = `Uvaha unavailable · ${error.message}`; });
