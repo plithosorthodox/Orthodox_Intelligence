@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start the loopback-only OI research prototype."""
+"""Start the loopback-only Uvaha / Orthodox Intelligence research prototype."""
 
 from __future__ import annotations
 
@@ -28,6 +28,14 @@ def main() -> None:
         action="store_true",
         help="force the original eight-record demonstration corpus",
     )
+    parser.add_argument(
+        "--model-endpoint",
+        default=None,
+        help=(
+            "loopback origin for a local llama.cpp OpenAI-compatible server, "
+            "for example http://127.0.0.1:8080; no remote endpoint is accepted"
+        ),
+    )
     args = parser.parse_args()
     if not 0 <= args.port <= 65535:
         raise SystemExit("port must be between 0 and 65535")
@@ -36,6 +44,7 @@ def main() -> None:
         args.port,
         corpus_install=args.corpus_install,
         force_demo=args.demo_corpus,
+        model_endpoint=args.model_endpoint,
     )
 
 
