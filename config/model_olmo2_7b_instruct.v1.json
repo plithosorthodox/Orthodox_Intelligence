@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "selection_status": "selected_reference_substrate",
+  "research_condition": "S0",
+  "family": "OLMo 2",
+  "upstream_model_id": "allenai/OLMo-2-1124-7B-Instruct",
+  "developer": "Allen Institute for AI (Ai2)",
+  "parameter_scale": "7B",
+  "primary_language": "English",
+  "license": {
+    "spdx": "Apache-2.0",
+    "redistribution_review_required_before_release": true
+  },
+  "post_training": [
+    "supervised_fine_tuning",
+    "direct_preference_optimization",
+    "reinforcement_learning_with_verifiable_rewards"
+  ],
+  "openness": {
+    "training_data_available": true,
+    "training_code_available": true,
+    "training_recipes_available": true,
+    "intermediate_checkpoints_available": true,
+    "evaluation_artifacts_available": true
+  },
+  "weights": {
+    "bundled_in_repository": false,
+    "upstream_revision": null,
+    "local_artifact_sha256": null,
+    "pin_revision_and_hash_before_experiment": true
+  },
+  "runtime": {
+    "production_runtime_selected": false,
+    "development_adapter": "llama.cpp OpenAI-compatible server",
+    "development_runtime_license": "MIT",
+    "transport": "loopback_http_only",
+    "remote_fallback_allowed": false
+  },
+  "intended_use": "Stock/reference OI substrate before OI-specific behavioral training. Model weights provide language and reasoning, not citable Orthodox evidence.",
+  "sources": [
+    "https://allenai.org/olmo2",
+    "https://huggingface.co/allenai/OLMo-2-1124-7B-Instruct",
+    "https://github.com/ggml-org/llama.cpp"
+  ]
+}
