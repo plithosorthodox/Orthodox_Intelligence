@@ -146,3 +146,36 @@ earlier one superseded; history is not rewritten.
   server locally. The adapter accepts loopback HTTP only and provides no remote
   inference fallback. This development choice does not select llama.cpp as the
   eventual mobile production runtime.
+
+## OI-013 - Uvaha is the app and Sofiia v0.1 is the first integrated model configuration
+
+- **Date:** 2026-09-04
+- **Status:** Accepted for v0.1 development
+- **Decision:** Use **Uvaha** as the application/product name. Use **Sofiia v0.1**
+  for the first integrated model configuration: OLMo 2 7B Instruct as the local
+  language/reasoning substrate with the versioned Plithos evidence system
+  supplied through retrieval. Keep **Orthodox Intelligence** as the research and
+  engineering lineage and **Plithos** as the evidence/corpus system.
+- **Boundary:** In Sofiia v0.1, Plithos is not silently merged into the OLMo
+  weights. The substrate, evidence package, future ELF, verifier, and application
+  remain independently versioned even though the user-facing model has one name.
+- **Reason:** The product name needs to be broader than the Orthodox research
+  program while retaining a precise technical identity for the first model and
+  preserving the provenance architecture already established.
+
+## OI-014 - First Sofiia generation is evidence-packed and verifier-gated
+
+- **Date:** 2026-09-04
+- **Status:** Accepted for v0.1 development
+- **Decision:** When a local OLMo runtime is explicitly connected, the prototype
+  retrieves Plithos evidence first, supplies only that evidence as the Orthodox
+  factual context for Sofiia, requires a structured JSON generation contract,
+  and verifies cited segment membership and exact direct quotations before a
+  generated answer is displayed. One bounded correction is allowed after a
+  verification failure; a second failure becomes an abstention.
+- **Limit:** This deterministic verifier does not yet prove semantic entailment of
+  every generated claim. Unsupported-claim/entailment detection remains a
+  separate engineering and evaluation problem and must not be overstated.
+- **Privacy:** The development model adapter accepts loopback HTTP only and has no
+  remote fallback. A generated prompt may be sent to the local model process on
+  the same device, but not to a remote inference service.
