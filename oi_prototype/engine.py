@@ -1,4 +1,4 @@
-"""Evidence-first answer path for the executable OI prototype."""
+"""Evidence-first answer path for the executable Uvaha / OI prototype."""
 
 from __future__ import annotations
 
@@ -6,6 +6,11 @@ from dataclasses import asdict, dataclass
 
 from . import __version__
 from .corpus import Evidence, EvidenceStore
+from .grounded_generation import (
+    GroundedGenerationError,
+    SOFIIA_DISPLAY_NAME,
+    generate_verified,
+)
 from .policy import BoundaryPolicy
 
 
@@ -25,32 +30,57 @@ class Answer:
 
 
 class PrototypeEngine:
-    """A deterministic retrieval vertical slice; it deliberately contains no LLM."""
+    """Evidence-first Uvaha prototype with an optional local Sofiia runtime."""
 
-    def __init__(self, evidence_store: EvidenceStore, policy: BoundaryPolicy):
+    def __init__(
+        self,
+        evidence_store: EvidenceStore,
+        policy: BoundaryPolicy,
+        model_runtime: object | None = None,
+    ):
         self.evidence_store = evidence_store
         self.policy = policy
+        self.model_runtime = model_runtime
 
     @property
     def versions(self) -> dict[str, str]:
+        if self.model_runtime is None:
+            model = "none-extractive-prototype"
+            substrate = "not-applicable"
+        else:
+            model = SOFIIA_DISPLAY_NAME
+            selected = getattr(self.model_runtime, "model", None)
+            substrate = getattr(
+                selected,
+                "upstream_model_id",
+                "allenai/OLMo-2-1124-7B-Instruct",
+            )
         return {
             "application": __version__,
-            "model": "none-extractive-prototype",
-            "substrate": "not-applicable",
+            "model": model,
+            "substrate": substrate,
             "elf": "none",
             "corpus": self.evidence_store.corpus_version,
             "retriever": getattr(
                 self.evidence_store, "search_version", "demo-fts5-bm25-v0.1"
             ),
             "boundary_policy": self.policy.version,
-            "verifier": "prototype-verifier-v0.2",
+            "verifier": "prototype-verifier-v0.3",
         }
 
     def status(self) -> dict[str, object]:
+        runtime_status = None
+        if self.model_runtime is not None:
+            status_method = getattr(self.model_runtime, "status", None)
+            if callable(status_method):
+                runtime_status = status_method()
         return {
-            "name": "Orthodox Intelligence research prototype",
+            "name": "Uvaha research prototype",
+            "research_program": "Orthodox Intelligence",
+            "selected_model": SOFIIA_DISPLAY_NAME,
             "offline_core": True,
-            "generative_model_loaded": False,
+            "generative_model_loaded": self.model_runtime is not None,
+            "model_runtime": runtime_status,
             "corpus_id": self.evidence_store.corpus_id,
             "corpus_mode": (
                 "plithos"
@@ -96,7 +126,7 @@ class PrototypeEngine:
                 return self._answer(
                     "evidence",
                     "exact_text",
-                    "Exact text was retrieved from the installed Plithos evidence package. The prototype did not reconstruct it from model memory.",
+                    "Exact text was retrieved from the installed Plithos evidence package. Sofiia did not reconstruct it from model memory.",
                     evidence=exact,
                 )
             return self._answer(
@@ -138,15 +168,41 @@ class PrototypeEngine:
                 text,
             )
 
+        if self.model_runtime is not None:
+            try:
+                generated = generate_verified(
+                    self.model_runtime,
+                    question,
+                    evidence,
+                )
+            except GroundedGenerationError:
+                return self._answer(
+                    "abstention",
+                    decision.intent,
+                    "Sofiia generated a draft, but it did not pass the local citation and quotation verifier after one bounded correction. No unverified answer was shown.",
+                    boundary_rule_id="VERIFIER-FAILURE",
+                )
+            if generated.abstained:
+                return self._answer(
+                    "abstention",
+                    decision.intent,
+                    generated.text,
+                )
+            return self._answer(
+                "generated",
+                decision.intent,
+                generated.text,
+                evidence=generated.evidence,
+            )
+
         label = (
             "The installed Plithos corpus contains the verified evidence below. "
-            "This prototype searches and verifies evidence; it does not yet generate "
-            "a synthesized language-model answer."
+            "Sofiia v0.1 is selected but no local model runtime is connected, so "
+            "this process is retrieving evidence rather than generating an answer."
             if self.evidence_store.corpus_id == "plithos-english"
             else
-            "The demonstration corpus contains the passages below. This first "
-            "vertical slice retrieves and verifies evidence; it does not yet generate "
-            "a synthesized answer."
+            "The demonstration corpus contains the passages below. This vertical "
+            "slice retrieves and verifies evidence; no local model runtime is connected."
         )
         return self._answer(
             "evidence",
