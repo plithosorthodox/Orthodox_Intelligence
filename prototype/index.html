@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2d173c">
-  <meta name="description" content="Orthodox Intelligence offline research prototype">
+  <meta name="description" content="Uvaha local AI research prototype powered by Sofiia and Plithos">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
-  <title>Orthodox Intelligence · Research Prototype</title>
+  <title>Uvaha · Sofiia v0.1 Research Prototype</title>
 </head>
 <body>
   <header class="masthead">
-    <div><p class="eyebrow">Research prototype · local evidence only</p><h1>Orthodox Intelligence</h1></div>
+    <div><p class="eyebrow">Research prototype · local-first AI</p><h1>Uvaha</h1></div>
     <div class="status" id="status" aria-live="polite">Starting locally…</div>
   </header>
   <main>
     <section class="notice" aria-labelledby="prototype-heading">
-      <div><h2 id="prototype-heading">A working vertical slice · local Plithos evidence navigator</h2><p id="corpus-description">This build searches the active local evidence package, resolves citations, verifies content hashes, and enforces deterministic boundaries. It still contains no language model.</p></div>
+      <div><h2 id="prototype-heading">Sofiia v0.1 · OLMo reasoning with verified Plithos evidence</h2><p id="corpus-description">This build searches the local Plithos evidence package, resolves citations, verifies content hashes, and enforces deterministic boundaries. Connect the selected local OLMo runtime to enable grounded Sofiia generation.</p></div>
       <button class="secondary" id="run-evaluation" type="button">Run behavioral evaluation</button>
     </section>
     <section id="calendar-panel" class="notice" hidden aria-labelledby="calendar-title">
@@ -37,10 +37,10 @@
     <section class="workspace" aria-label="Prototype workspace">
       <div class="conversation">
         <div id="messages" class="messages" aria-live="polite">
-          <article class="message assistant"><p id="welcome-message">When the Plithos package is installed, search for a saint, prayer, Scripture passage, glossary term, or text from the Library. The prototype returns source evidence rather than synthesizing an AI answer.</p></article>
+          <article class="message assistant"><p id="welcome-message">Sofiia v0.1 uses the selected OLMo substrate with locally retrieved Plithos evidence. Until the local model runtime is connected, Uvaha remains in evidence-search mode.</p></article>
         </div>
         <form id="ask-form" class="composer">
-          <label for="question">Search or question</label>
+          <label for="question">Ask Sofiia</label>
           <div class="composer-row"><textarea id="question" name="question" rows="2" maxlength="4000" placeholder="Tell me about St Nicholas" required></textarea><button type="submit">Search locally</button></div>
         </form>
         <div class="examples" aria-label="Example searches">
@@ -52,7 +52,7 @@
       </div>
       <aside class="inspector" aria-labelledby="inspector-title">
         <h2 id="inspector-title">Resolved build</h2><dl id="versions"></dl><p id="corpus-summary" class="privacy"></p>
-        <p class="privacy">Questions remain in memory for the current browser view only. The prototype server does not save them or make outbound requests.</p>
+        <p class="privacy">Questions remain in memory for the current browser view only. Uvaha does not save them. When Sofiia is enabled, generation is sent only to the explicitly configured loopback model process on this device.</p>
       </aside>
     </section>
     <section id="evaluation-panel" class="evaluation" hidden aria-labelledby="evaluation-title">
@@ -60,7 +60,7 @@
       <p id="evaluation-limit" class="claim-limit"></p><div id="evaluation-results" class="evaluation-results"></div>
     </section>
   </main>
-  <footer><p>Artificial research system. Not clergy, a spiritual father, or an ecclesially approved source.</p></footer>
+  <footer><p>Uvaha is an artificial system. Sofiia is not clergy, a spiritual father, or an ecclesially approved source.</p></footer>
   <script src="/app.js" defer></script>
 </body>
 </html>
