@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "product": "Uvaha",
+  "model_name": "Sofiia",
+  "model_version": "0.1",
+  "display_name": "Sofiia v0.1",
+  "status": "development",
+  "substrate_manifest": "config/model_olmo2_7b_instruct.v1.json",
+  "substrate": "allenai/OLMo-2-1124-7B-Instruct",
+  "evidence_manifest": "config/plithos_corpus.v1.json",
+  "evidence_system": "Plithos",
+  "evidence_mode": "retrieval",
+  "evidence_in_weights": false,
+  "elf_version": null,
+  "generation_contract": "sofiia-grounded-json-v0.1",
+  "verification": {
+    "citations_must_resolve_to_retrieved_segments": true,
+    "direct_quotations_must_match_retrieved_text": true,
+    "unsupported_model_memory_is_not_a_citable_source": true,
+    "one_bounded_regeneration_after_verification_failure": true
+  },
+  "identity": {
+    "artificial_system": true,
+    "may_claim_personal_faith": false,
+    "may_claim_clerical_or_pastoral_authority": false
+  },
+  "notes": "Sofiia v0.1 names the integrated Uvaha model configuration: OLMo 2 7B Instruct as the language/reasoning substrate with versioned Plithos evidence supplied through retrieval. Plithos is not baked into the model weights in this version."
+}
