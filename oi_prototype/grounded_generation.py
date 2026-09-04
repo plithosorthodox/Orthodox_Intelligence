@@ -42,6 +42,7 @@ class VerifiedGeneration:
     model_id: str
     runtime: str
     attempts: int
+    abstained: bool
 
 
 def _dedupe(values: Iterable[str]) -> tuple[str, ...]:
@@ -68,7 +69,10 @@ def _pack_evidence(evidence: tuple[Evidence, ...]) -> tuple[Evidence, ...]:
     return tuple(selected)
 
 
-def build_generation_request(question: str, evidence: tuple[Evidence, ...]) -> tuple[GenerationRequest, tuple[Evidence, ...]]:
+def build_generation_request(
+    question: str,
+    evidence: tuple[Evidence, ...],
+) -> tuple[GenerationRequest, tuple[Evidence, ...]]:
     selected = _pack_evidence(evidence)
     if not selected:
         raise GroundedGenerationError("generation requires retrieved evidence")
@@ -127,7 +131,9 @@ def parse_draft(text: str) -> GroundedDraft:
     abstain = payload.get("abstain")
     if not isinstance(answer, str) or not answer.strip():
         raise GroundedGenerationError("model output requires a non-empty answer")
-    if not isinstance(citations, list) or not all(isinstance(value, str) and value for value in citations):
+    if not isinstance(citations, list) or not all(
+        isinstance(value, str) and value for value in citations
+    ):
         raise GroundedGenerationError("model output citations must be a string list")
     if not isinstance(quotes, list):
         raise GroundedGenerationError("model output quotes must be a list")
@@ -154,11 +160,14 @@ def parse_draft(text: str) -> GroundedDraft:
     )
 
 
-def verify_draft(draft: GroundedDraft, evidence: tuple[Evidence, ...]) -> tuple[bool, str]:
+def verify_draft(
+    draft: GroundedDraft,
+    evidence: tuple[Evidence, ...],
+) -> tuple[bool, str]:
     by_id = {item.segment_id: item for item in evidence}
     if draft.abstain:
-        if draft.quotes:
-            return False, "an abstention may not include direct quotations"
+        if draft.citations or draft.quotes:
+            return False, "an abstention may not include citations or direct quotations"
         return True, "verified abstention"
 
     if not draft.citations:
@@ -213,20 +222,28 @@ def build_correction_request(
     )
 
 
-def generate_verified(runtime: object, question: str, evidence: tuple[Evidence, ...]) -> VerifiedGeneration:
+def generate_verified(
+    runtime: object,
+    question: str,
+    evidence: tuple[Evidence, ...],
+) -> VerifiedGeneration:
     request, selected = build_generation_request(question, evidence)
     last_failure = "generation failed"
     last_output = ""
 
     for attempt in (1, 2):
         if attempt == 2:
-            request = build_correction_request(question, selected, last_output, last_failure)
+            request = build_correction_request(
+                question, selected, last_output, last_failure
+            )
         try:
             result = runtime.generate(request)
         except Exception as exc:
             raise GroundedGenerationError("local model generation failed") from exc
         if not isinstance(result, GenerationResult):
-            raise GroundedGenerationError("model runtime returned an unexpected result type")
+            raise GroundedGenerationError(
+                "model runtime returned an unexpected result type"
+            )
         last_output = result.text
         try:
             draft = parse_draft(result.text)
@@ -244,14 +261,21 @@ def generate_verified(runtime: object, question: str, evidence: tuple[Evidence, 
                 model_id=result.model_id,
                 runtime=result.runtime,
                 attempts=attempt,
+                abstained=True,
             )
-        cited = tuple(by_id for by_id in selected if by_id.segment_id in draft.citations)
+        cited = tuple(
+            item for item in selected if item.segment_id in draft.citations
+        )
         return VerifiedGeneration(
             text=draft.answer,
             evidence=cited,
             model_id=result.model_id,
             runtime=result.runtime,
             attempts=attempt,
+            abstained=False,
         )
 
-    raise GroundedGenerationError(f"Sofiia draft failed verification after one bounded correction: {last_failure}")
+    raise GroundedGenerationError(
+        "Sofiia draft failed verification after one bounded correction: "
+        + last_failure
+    )
