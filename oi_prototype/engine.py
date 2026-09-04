@@ -1,4 +1,4 @@
-"""Evidence-first answer path for the first executable OI prototype."""
+"""Evidence-first answer path for the executable OI prototype."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class Answer:
 
 
 class PrototypeEngine:
-    """A deterministic vertical slice; it deliberately contains no LLM."""
+    """A deterministic retrieval vertical slice; it deliberately contains no LLM."""
 
     def __init__(self, evidence_store: EvidenceStore, policy: BoundaryPolicy):
         self.evidence_store = evidence_store
@@ -39,8 +39,11 @@ class PrototypeEngine:
             "substrate": "not-applicable",
             "elf": "none",
             "corpus": self.evidence_store.corpus_version,
+            "retriever": getattr(
+                self.evidence_store, "search_version", "demo-fts5-bm25-v0.1"
+            ),
             "boundary_policy": self.policy.version,
-            "verifier": "prototype-verifier-v0.1",
+            "verifier": "prototype-verifier-v0.2",
         }
 
     def status(self) -> dict[str, object]:
@@ -49,7 +52,17 @@ class PrototypeEngine:
             "offline_core": True,
             "generative_model_loaded": False,
             "corpus_id": self.evidence_store.corpus_id,
+            "corpus_mode": (
+                "plithos"
+                if self.evidence_store.corpus_id == "plithos-english"
+                else "demonstration"
+            ),
             "record_count": self.evidence_store.record_count,
+            "entity_count": getattr(self.evidence_store, "entity_count", None),
+            "features": list(getattr(self.evidence_store, "features", ())),
+            "supports_exact_text": bool(
+                getattr(self.evidence_store, "supports_exact_text", False)
+            ),
             "versions": self.versions,
         }
 
@@ -69,6 +82,30 @@ class PrototypeEngine:
             )
 
         decision = self.policy.classify(question)
+
+        if (
+            decision.rule_id == "EXACT-TEXT-DEMO-01"
+            and getattr(self.evidence_store, "supports_exact_text", False)
+        ):
+            exact = tuple(
+                item
+                for item in self.evidence_store.search(question)
+                if item.exact_text
+            )
+            if exact:
+                return self._answer(
+                    "evidence",
+                    "exact_text",
+                    "Exact text was retrieved from the installed Plithos evidence package. The prototype did not reconstruct it from model memory.",
+                    evidence=exact,
+                )
+            return self._answer(
+                "abstention",
+                "exact_text",
+                "The installed Plithos corpus did not resolve an eligible exact-text record for that request. No text was reconstructed from model memory.",
+                boundary_rule_id=decision.rule_id,
+            )
+
         if decision.response is not None:
             return self._answer(
                 decision.response_class or "boundary",
@@ -79,15 +116,36 @@ class PrototypeEngine:
 
         evidence = tuple(self.evidence_store.search(question))
         if not evidence:
+            suggestion = None
+            suggest = getattr(self.evidence_store, "suggest", None)
+            if callable(suggest):
+                suggestion = suggest(question)
+            text = (
+                "The installed corpus does not contain enough retrievable evidence "
+                "for that query. No model-memory answer was substituted."
+            )
+            if suggestion:
+                text += f' Did you mean "{suggestion}"?'
             return self._answer(
                 "abstention",
                 decision.intent,
-                "The installed demonstration corpus does not contain enough evidence to answer that question. No model-memory answer was substituted.",
+                text,
             )
+
+        label = (
+            "The installed Plithos corpus contains the verified evidence below. "
+            "This prototype searches and verifies evidence; it does not yet generate "
+            "a synthesized language-model answer."
+            if self.evidence_store.corpus_id == "plithos-english"
+            else
+            "The demonstration corpus contains the passages below. This first "
+            "vertical slice retrieves and verifies evidence; it does not yet generate "
+            "a synthesized answer."
+        )
         return self._answer(
             "evidence",
             decision.intent,
-            "The demonstration corpus contains the passages below. This first vertical slice retrieves and verifies evidence; it does not yet generate a synthesized answer.",
+            label,
             evidence=evidence,
         )
 
