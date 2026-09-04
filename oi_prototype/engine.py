@@ -120,10 +120,16 @@ class PrototypeEngine:
             suggest = getattr(self.evidence_store, "suggest", None)
             if callable(suggest):
                 suggestion = suggest(question)
-            text = (
-                "The installed corpus does not contain enough evidence for that query. "
-                "No model-memory answer was substituted."
-            )
+            if self.evidence_store.corpus_id == "plithos-english":
+                text = (
+                    "The installed Plithos corpus does not contain enough evidence for that query. "
+                    "No model-memory answer was substituted."
+                )
+            else:
+                text = (
+                    "The installed demonstration corpus does not contain enough evidence "
+                    "to answer that question. No model-memory answer was substituted."
+                )
             if suggestion:
                 text += f' Did you mean "{suggestion}"?'
             return self._answer(
