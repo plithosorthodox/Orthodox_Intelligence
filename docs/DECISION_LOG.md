@@ -104,3 +104,18 @@ earlier one superseded; history is not rewritten.
 - **Reason:** This produces something testable now without merging the four
   independently measured layers or bypassing device, license, provenance, and
   review decisions.
+
+## OI-008 - The offline bundle is a generated artifact, never edited by hand
+
+- **Date:** 2026-09-04
+- **Status:** Accepted for v0.1
+- **Decision:** `prototype/oi-offline.html` is produced only by
+  `tools/build_offline_bundle.py` from the same corpus, boundary policy, and
+  development suite the reference server reads. The build is deterministic,
+  the tests fail when the committed file is stale, and the page verifies every
+  record against its content hash before showing it. Its retrieval ranking is
+  a simpler scorer than the reference SQLite path and the page says so.
+- **Reason:** A file people copy to phones will drift from the repository
+  unless the repository refuses to let it. Generating it from the governing
+  inputs keeps one policy and one corpus, however many copies of the page
+  exist.

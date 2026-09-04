@@ -41,6 +41,22 @@ The interface can:
 - reject instructions that try to replace governing rules; and
 - run the development behavioral suite and show every item's result.
 
+## Run it without Python
+
+`prototype/oi-offline.html` is the same demonstration as a single file. Copy
+it to a phone or a computer and open it in a browser; it needs no server, no
+installation, and no network, and it verifies every corpus record against its
+published hash before answering. It is generated from the corpus, boundary
+policy, and development suite by:
+
+```bash
+python tools/build_offline_bundle.py
+```
+
+Regenerate it in the same commit whenever any of those inputs change; the
+tests fail if the committed file is stale. Its retrieval ranking uses a
+simpler scorer than the reference SQLite path, which the page discloses.
+
 ## Run the automated checks
 
 ```bash

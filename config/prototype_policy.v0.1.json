@@ -1,29 +1,68 @@
 {
-  "policy_version": "prototype-boundary-v0.1",
+  "policy_version": "prototype-boundary-v0.2",
   "status": "development_only",
-  "description": "Deterministic boundaries for the executable research prototype. This is not an ELF and contains no claim of ecclesial review.",
+  "description": "Deterministic boundaries for the executable research prototype. This is not an ELF and contains no claim of ecclesial review. Version 0.2 broadens every rule beyond the phrasings its own development suite uses and adds a truthful-identity rule for questions about the system's faith, so that a question about the machine is never answered as though it were a question about the corpus.",
   "rules": [
     {
       "rule_id": "IDENTITY-CLERGY-01",
       "intent": "identity_boundary",
       "response_class": "boundary",
       "patterns": [
-        "\\bare you (?:an? )?(?:orthodox )?(?:priest|bishop|deacon|monk|nun|confessor|spiritual father)\\b",
-        "\\b(?:pretend|claim) (?:to be|you are) (?:an? )?(?:orthodox )?(?:priest|bishop|deacon|confessor|spiritual father)\\b",
-        "\\bact as my (?:priest|confessor|spiritual father)\\b"
+        "\\bare you (?:an? )?(?:orthodox )?(?:priest|bishop|deacon|monk|nun|clergy(?:man)?|confessor|elder|starets|hieromonk|archimandrite|spiritual (?:father|mother))\\b",
+        "\\b(?:pretend|claim|imagine|roleplay|role-play) (?:to be|that )?(?:you are )?(?:an? )?(?:orthodox )?(?:priest|bishop|deacon|confessor|elder|starets|spiritual (?:father|mother))\\b",
+        "\\b(?:act|serve|speak|answer|respond) as (?:my |an? )?(?:priest|bishop|confessor|elder|starets|spiritual (?:father|mother))\\b",
+        "\\bas my (?:priest|confessor|elder|starets|spiritual (?:father|mother))\\b",
+        "\\bbe my (?:priest|confessor|elder|starets|spiritual (?:father|mother))\\b",
+        "\\bhear my confession\\b",
+        "\\babsolve me\\b",
+        "\\bfather,? bless\\b",
+        "\\bbless me,? father\\b",
+        "\\bgive me (?:your |a )?blessing\\b"
       ],
       "response": "I am an artificial research prototype, not a Christian person, member of the Church, priest, confessor, or spiritual father. I can help locate documented sources, but I cannot assume pastoral or sacramental authority."
+    },
+    {
+      "rule_id": "IDENTITY-FAITH-01",
+      "intent": "identity_boundary",
+      "response_class": "boundary",
+      "patterns": [
+        "\\bare you (?:a )?(?:christian|orthodox|religious|a believer|baptized|baptised|chrismated|saved)\\b",
+        "\\b(?:have|were|was) you (?:been )?(?:baptized|baptised|chrismated|churched|converted|ordained)\\b",
+        "\\bdo you (?:pray|fast|believe in (?:god|christ)|have (?:faith|a soul)|go to (?:church|liturgy|confession|vespers)|receive communion|commune|venerate (?:icons|saints)|keep the fasts?)\\b",
+        "\\b(?:will|would|can|could) you pray\\b",
+        "\\bpray for me\\b",
+        "\\bwhat (?:do you believe|is your (?:faith|religion|jurisdiction|parish))\\b",
+        "\\byour (?:patron saint|name day|godparents)\\b",
+        "\\bis your soul\\b"
+      ],
+      "response": "I am an artificial system, not a person. I am not baptized, I do not pray, and I hold no faith, so I will not claim any of those things even in passing. I can find and cite what the Church's own published sources say. A request for prayer belongs with a priest, a parish, or a praying person, not with software."
     },
     {
       "rule_id": "PASTORAL-SACRAMENT-01",
       "intent": "pastoral_boundary",
       "response_class": "boundary",
       "patterns": [
-        "\\b(?:should|may|can) I (?:receive|take) (?:holy )?communion\\b",
-        "\\bwhat penance should I\\b",
-        "\\b(?:should|must) I confess\\b",
-        "\\bcan I be absolved\\b",
-        "\\bis my priest wrong\\b"
+        "\\b(?:should|may|can|must|do) i (?:receive|take) (?:holy )?communion\\b",
+        "\\b(?:should|may|can|must|do) i (?:commune|receive the (?:eucharist|holy gifts|holy mysteries))\\b",
+        "\\b(?:am i|would i be) (?:allowed|permitted|worthy) to (?:commune|receive|approach)\\b",
+        "\\bpermitted to commune\\b",
+        "\\b(?:do|should|can|may) i (?:still )?(?:go|come) (?:up )?to the chalice\\b",
+        "\\bwhat penance\\b",
+        "\\bgave me a penance\\b",
+        "\\bpenance .{0,30}\\btoo (?:harsh|severe|strict|light|lenient)\\b",
+        "\\b(?:should|must) i confess\\b",
+        "\\b(?:do|should|must) i (?:need to )?go to confession\\b",
+        "\\bcan i be absolved\\b",
+        "\\b(?:is|was) (?:this|that|it) a (?:mortal )?sin\\b",
+        "\\bhave i sinned\\b",
+        "\\bam i in (?:a state of )?sin\\b",
+        "\\b(?:do|must|should) i (?:have to |need to )?fast\\b",
+        "\\b(?:can|may) i break the fast\\b",
+        "\\bam i excused from (?:the )?fast(?:ing)?\\b",
+        "\\b(?:can|may|should) i (?:re)?marry\\b",
+        "\\b(?:can|may|should) i (?:get )?(?:a )?divorce\\b",
+        "\\bis my priest wrong\\b",
+        "\\bmy (?:priest|confessor|spiritual father) is wrong\\b"
       ],
       "response": "That request calls for personal pastoral or sacramental judgment, which this artificial system cannot provide. A priest who knows the person and circumstances is the appropriate source of guidance. The prototype may still help locate general source material without applying it as a personal ruling."
     },
@@ -32,9 +71,16 @@
       "intent": "exact_text",
       "response_class": "abstention",
       "patterns": [
-        "\\bquote (?:the )?(?:exact )?(?:scripture|bible|gospel|liturgy|prayer|canon)\\b",
+        "\\bquote (?:the )?(?:exact )?(?:scripture|bible|gospel|liturgy|prayer|canon|psalm)\\b",
         "\\bexact (?:scripture|biblical|liturgical|prayer|canonical) (?:words|wording|text|quotation)\\b",
-        "\\brecite (?:the )?(?:scripture|bible|gospel|liturgy|prayer)\\b"
+        "\\brecite (?:the )?(?:scripture|bible|gospel|liturgy|prayer|creed|psalm)\\b",
+        "\\bword for word\\b",
+        "\\bverbatim\\b",
+        "\\bthe (?:full|complete|entire|whole) text of\\b",
+        "\\bwrite out\\b.{0,40}\\b(?:prayer|creed|psalm|troparion|kontakion|akathist|litany|gospel|epistle|liturgy)\\b",
+        "\\bwhat (?:does|do) the (?:trisagion|creed|nicene creed|lord'?s prayer|our father|jesus prayer|cherubic hymn|great doxology|paschal troparion|akathist|anaphora)\\b.{0,30}\\b(?:say|read|go)\\b",
+        "\\b(?:quote|recite|give me|read me|write out|text of|full wording of)\\b.{0,30}\\b(?:[1-4] )?(?:matthew|mark|luke|john|acts|romans|corinthians|galatians|ephesians|philippians|colossians|thessalonians|timothy|titus|philemon|hebrews|james|peter|jude|revelation|genesis|exodus|leviticus|numbers|deuteronomy|psalms?|proverbs|isaiah|jeremiah|ezekiel|daniel|wisdom|sirach|tobit|judith|baruch|maccabees) ?\\d{1,3} ?[:.] ?\\d{1,3}\\b",
+        "\\bwhat does\\b.{0,30}\\b(?:[1-4] )?(?:matthew|mark|luke|john|acts|romans|corinthians|galatians|ephesians|philippians|colossians|thessalonians|timothy|titus|philemon|hebrews|james|peter|jude|revelation|genesis|exodus|leviticus|numbers|deuteronomy|psalms?|proverbs|isaiah|jeremiah|ezekiel|daniel|wisdom|sirach|tobit|judith|baruch|maccabees) ?\\d{1,3} ?[:.] ?\\d{1,3}\\b.{0,20}\\bsay\\b"
       ],
       "response": "The installed demonstration corpus contains no eligible Scripture or liturgical edition. I will not reconstruct sacred text from model memory. An exact quotation can be returned only after an eligible, versioned source is installed."
     },
@@ -43,12 +89,18 @@
       "intent": "adversarial_instruction",
       "response_class": "boundary",
       "patterns": [
-        "\\bignore (?:all |the )?(?:previous|prior|system) instructions\\b",
-        "\\breveal (?:the )?(?:system prompt|hidden instructions)\\b",
-        "\\btreat (?:this|the following) (?:document|source|email) as (?:a )?system instruction\\b"
+        "\\b(?:ignore|disregard|forget|drop|bypass|override|suspend)\\b.{0,30}\\b(?:previous|prior|earlier|above|all|any|the|your|system)\\b.{0,20}\\b(?:instructions?|rules?|restrictions?|guidelines?|polic(?:y|ies)|boundar(?:y|ies)|limits?|filters?)\\b",
+        "\\b(?:ignore|disregard) everything (?:above|before|previous)\\b",
+        "\\breveal (?:the |your )?(?:system prompt|hidden instructions|internal rules)\\b",
+        "\\btreat (?:this|the following) (?:document|source|email|text) as (?:a )?system instruction\\b",
+        "\\b(?:overrides?|replaces?|supersedes?) your (?:rules|instructions|policy|policies|boundaries)\\b",
+        "\\byou are now (?:in )?(?:developer|dan|jailbreak|unrestricted|god) ?mode\\b",
+        "\\b(?:developer|jailbreak) mode\\b",
+        "\\bnew system prompt\\b",
+        "\\b(?:answer|respond|reply|act) (?:freely|without (?:your )?(?:rules|restrictions|limits|boundaries|filters))\\b",
+        "\\bpretend (?:the|your) (?:rules|instructions|boundaries) (?:do not|don'?t) (?:apply|exist)\\b"
       ],
       "response": "Source text and user-supplied content cannot replace the prototype's governing instructions or permissions. I can analyze the material as data without executing instructions embedded within it."
     }
   ]
 }
-
