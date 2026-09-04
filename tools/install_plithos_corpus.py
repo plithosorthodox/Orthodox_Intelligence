@@ -3,8 +3,8 @@
 
 This tool performs no network access. It verifies a sibling checkout of
 plithos_corpus against config/plithos_corpus.v1.json, builds the corpus SQLite
-artifact with the corpus repository's own deterministic builder, and writes an
-installed sidecar manifest under artifacts/plithos/.
+artifact with the corpus repository's own deterministic builder, copies the
+verified English calendar assets, and writes an installed sidecar manifest.
 """
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCK_PATH = ROOT / "config" / "plithos_corpus.v1.json"
@@ -68,22 +67,54 @@ def verify_source_records(path: Path, required_fields: list[str]) -> None:
             try:
                 record = json.loads(line)
             except json.JSONDecodeError as exc:
-                raise InstallError(
-                    f"invalid source JSON at {path}:{line_no}"
-                ) from exc
+                raise InstallError(f"invalid source JSON at {path}:{line_no}") from exc
             if not isinstance(record, dict):
                 raise InstallError(f"source record {line_no} is not an object")
             for field in required_fields:
                 value = record.get(field)
                 if not isinstance(value, str) or not value.strip():
-                    raise InstallError(
-                        f"source record {line_no} lacks required {field}"
-                    )
+                    raise InstallError(f"source record {line_no} lacks required {field}")
     if count == 0:
         raise InstallError("source inventory is empty")
 
 
-def verify_corpus(repo: Path, lock: dict) -> Path:
+def verify_calendar(corpus_dir: Path, lock: dict) -> Path:
+    expected = lock.get("calendar")
+    if not isinstance(expected, dict):
+        raise InstallError("OI corpus lock has no calendar contract")
+    manifest_rel = expected.get("manifest_file")
+    if not isinstance(manifest_rel, str):
+        raise InstallError("OI calendar contract has no manifest file")
+    manifest = read_json(corpus_dir / manifest_rel)
+    for field in ("language", "calendars", "old_calendar_offset_days"):
+        if manifest.get(field) != expected.get(field):
+            raise InstallError(f"calendar manifest {field} does not match OI lock")
+    if manifest.get("upstream_commit") != lock.get("upstream_commit"):
+        raise InstallError("calendar upstream commit does not match OI lock")
+    if manifest.get("upstream_repository") != lock.get("upstream_repository"):
+        raise InstallError("calendar upstream repository does not match OI lock")
+
+    for section in ("engine", "tables"):
+        wanted = expected.get(section)
+        actual = manifest.get(section)
+        if not isinstance(wanted, dict) or not isinstance(actual, dict):
+            raise InstallError(f"invalid calendar {section} contract")
+        if actual.get("sha256") != wanted.get("sha256"):
+            raise InstallError(f"calendar {section} hash differs from OI lock")
+        if section == "engine" and actual.get("module_export") != wanted.get("module_export"):
+            raise InstallError("calendar module export differs from OI lock")
+        rel = wanted.get("file")
+        if not isinstance(rel, str):
+            raise InstallError(f"calendar {section} file is missing")
+        source_path = corpus_dir / rel
+        if not source_path.is_file():
+            raise InstallError(f"missing calendar asset: {source_path}")
+        if sha256_file(source_path) != wanted.get("sha256"):
+            raise InstallError(f"calendar asset hash mismatch: {rel}")
+    return corpus_dir / "calendar"
+
+
+def verify_corpus(repo: Path, lock: dict) -> tuple[Path, Path]:
     expected_commit = lock["corpus_commit"]
     actual_commit = git_head(repo)
     if actual_commit != expected_commit:
@@ -92,11 +123,8 @@ def verify_corpus(repo: Path, lock: dict) -> Path:
         )
 
     corpus_dir = repo / "corpus" / lock["language"]
-    build_path = corpus_dir / "build.json"
-    build = read_json(build_path)
-
-    exact_fields = ("language", "upstream_commit", "features", "counts", "summary")
-    for field in exact_fields:
+    build = read_json(corpus_dir / "build.json")
+    for field in ("language", "upstream_commit", "features", "counts", "summary"):
         if build.get(field) != lock.get(field):
             raise InstallError(f"build.json {field} does not match OI corpus lock")
 
@@ -105,13 +133,9 @@ def verify_corpus(repo: Path, lock: dict) -> Path:
         raise InstallError("OI corpus lock has no file hashes")
     if build.get("file_sha256") != expected_files:
         raise InstallError("build.json file hashes do not match OI corpus lock")
-
     for filename, expected_hash in sorted(expected_files.items()):
         path = corpus_dir / filename
-        if not path.is_file():
-            raise InstallError(f"missing corpus file: {path}")
-        actual_hash = sha256_file(path)
-        if actual_hash != expected_hash:
+        if not path.is_file() or sha256_file(path) != expected_hash:
             raise InstallError(f"hash mismatch for {filename}")
 
     inventory = lock.get("source_inventory") or {}
@@ -120,7 +144,8 @@ def verify_corpus(repo: Path, lock: dict) -> Path:
     if not isinstance(inventory_file, str) or not isinstance(required_fields, list):
         raise InstallError("OI corpus lock has invalid source inventory contract")
     verify_source_records(corpus_dir / inventory_file, required_fields)
-    return corpus_dir
+    calendar_dir = verify_calendar(corpus_dir, lock)
+    return corpus_dir, calendar_dir
 
 
 def build_sqlite(repo: Path, corpus_dir: Path, output: Path) -> None:
@@ -129,14 +154,7 @@ def build_sqlite(repo: Path, corpus_dir: Path, output: Path) -> None:
         raise InstallError(f"missing corpus SQLite builder: {builder}")
     try:
         subprocess.run(
-            [
-                sys.executable,
-                str(builder),
-                "--corpus",
-                str(corpus_dir),
-                "--output",
-                str(output),
-            ],
+            [sys.executable, str(builder), "--corpus", str(corpus_dir), "--output", str(output)],
             check=True,
         )
     except subprocess.CalledProcessError as exc:
@@ -146,11 +164,12 @@ def build_sqlite(repo: Path, corpus_dir: Path, output: Path) -> None:
 def install(corpus_repo: Path, output_dir: Path) -> dict:
     lock = read_json(LOCK_PATH)
     corpus_repo = corpus_repo.resolve()
-    corpus_dir = verify_corpus(corpus_repo, lock)
+    corpus_dir, calendar_dir = verify_corpus(corpus_repo, lock)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     final_db = output_dir / "plithos-en.sqlite"
     final_manifest = output_dir / "installed.json"
+    final_calendar = output_dir / "calendar"
 
     with tempfile.TemporaryDirectory(prefix="oi-plithos-") as temp:
         temp_db = Path(temp) / "plithos-en.sqlite"
@@ -158,7 +177,10 @@ def install(corpus_repo: Path, output_dir: Path) -> dict:
         db_hash = sha256_file(temp_db)
         shutil.copyfile(temp_db, final_db)
 
-    build_hash = sha256_file(corpus_dir / "build.json")
+    if final_calendar.exists():
+        shutil.rmtree(final_calendar)
+    shutil.copytree(calendar_dir, final_calendar)
+
     installed = {
         "schema_version": 1,
         "corpus_repository": lock["corpus_repository"],
@@ -169,8 +191,9 @@ def install(corpus_repo: Path, output_dir: Path) -> dict:
         "features": lock["features"],
         "counts": lock["counts"],
         "summary": lock["summary"],
+        "calendar": lock["calendar"],
         "source_file_sha256": lock["file_sha256"],
-        "build_manifest_sha256": build_hash,
+        "build_manifest_sha256": sha256_file(corpus_dir / "build.json"),
         "sqlite_sha256": db_hash,
         "builder": "plithos_corpus/tools/build_sqlite.py",
     }
@@ -183,12 +206,8 @@ def install(corpus_repo: Path, output_dir: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--corpus-repo",
-        type=Path,
-        required=True,
-        help="local checkout of plithosorthodox/plithos_corpus at the pinned commit",
-    )
+    parser.add_argument("--corpus-repo", type=Path, required=True,
+                        help="local checkout of plithosorthodox/plithos_corpus at the pinned commit")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
     try:
@@ -198,9 +217,9 @@ def main() -> None:
     print(
         "installed Plithos corpus "
         f"{installed['corpus_commit'][:12]} with "
-        f"{installed['counts']['entities']} entities / "
-        f"{installed['counts']['texts']} texts"
+        f"{installed['counts']['entities']} entities / {installed['counts']['texts']} texts"
     )
+    print("calendar: Revised Julian + Julian")
     print(f"artifact: {args.output_dir / 'plithos-en.sqlite'}")
 
 
