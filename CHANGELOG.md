@@ -5,6 +5,18 @@ recorded here. Dates use UTC.
 
 ## Unreleased
 
+- Fixed the installed Plithos corpus raising `sqlite3.ProgrammingError` on
+  every question: the search connection is opened on the main thread and used
+  from a ThreadingHTTPServer worker on each request, so it now takes
+  `check_same_thread=False` and a lock, as the demonstration store already
+  did. Uvaha could not answer anything with a real corpus installed.
+- Added `tests/test_installed_corpus_server.py`, which serves questions from
+  an installed corpus across threads and concurrently, and skips where no
+  corpus is installed.
+- Pinned the demonstration corpus in the existing server tests. They asserted
+  demo content against whatever corpus happened to be installed, so they
+  passed in CI and failed on any machine that had followed the documented
+  install step.
 - Restored the v0.1 policy, suite, and scoring files to their original
   content and moved the revised material into properly named v0.2 files, so a
   version named in a run manifest always resolves to one artifact.

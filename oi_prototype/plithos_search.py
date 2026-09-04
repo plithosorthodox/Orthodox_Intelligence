@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 import sqlite3
+import threading
 import unicodedata
 from typing import Iterable
 
@@ -151,7 +152,17 @@ class CorpusSearch:
 
     def __init__(self, db_path: str | Path):
         self.db_path = Path(db_path)
-        self.db = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
+        # check_same_thread=False plus a lock, matching EvidenceStore in
+        # corpus.py. The prototype server is a ThreadingHTTPServer, so the
+        # connection is opened on the main thread and used from a different
+        # worker thread on every request; without this, each question raises
+        # sqlite3.ProgrammingError once a real corpus is installed. The
+        # connection is read-only, and the lock keeps concurrent queries from
+        # sharing one cursor.
+        self.db = sqlite3.connect(
+            f"file:{self.db_path}?mode=ro", uri=True, check_same_thread=False
+        )
+        self._lock = threading.RLock()
         self.db.row_factory = sqlite3.Row
         self._entities = {r["entity_id"]: r for r in self.db.execute(
             "SELECT entity_id, entity_type, great FROM entities ORDER BY entity_id")}
@@ -284,7 +295,9 @@ class CorpusSearch:
         sql += " ORDER BY rank ASC, e.great DESC, f.record_id ASC LIMIT ?"
         params.append(max(limit * 8, 80))
         out = []
-        for row in self.db.execute(sql, params):
+        with self._lock:
+            rows = self.db.execute(sql, params).fetchall()
+        for row in rows:
             out.append(SearchHit(
                 record_id=row["record_id"], entity_id=row["entity_id"],
                 entity_type=row["entity_type"], kind=row["kind"],

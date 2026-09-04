@@ -143,7 +143,11 @@ class EvaluationTests(unittest.TestCase):
 class ServerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server = PrototypeServer(("127.0.0.1", 0), ROOT)
+        # force_demo pins the demonstration corpus. Without it these tests
+        # assert demo content against whatever corpus happens to be installed
+        # in artifacts/plithos, so they pass in CI and fail on any machine
+        # that has followed the documented install step.
+        cls.server = PrototypeServer(("127.0.0.1", 0), ROOT, force_demo=True)
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
         cls.base_url = "http://127.0.0.1:%d" % cls.server.server_address[1]
