@@ -54,8 +54,17 @@ python tools/build_offline_bundle.py
 ```
 
 Regenerate it in the same commit whenever any of those inputs change; the
-tests fail if the committed file is stale. Its retrieval ranking uses a
-simpler scorer than the reference SQLite path, which the page discloses.
+tests fail if the committed file is stale, and a parity test drives the
+bundle's JavaScript engine and the Python engine with one probe list and
+requires identical answers. Its retrieval ranking uses a simpler scorer than
+the reference SQLite path, which the page discloses.
+
+The bundle is a transparent development artifact. Everything in it, the
+corpus, the policy, the suite, and the engine, is meant to be read, and its
+embedded hashes detect corruption, not authorship. It must never package a
+production ELF, locked evaluation material, model weights, or protected
+corpus material; a protected distribution is a separate decision with a
+publisher signature anchored outside the file.
 
 ## Run the automated checks
 

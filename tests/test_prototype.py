@@ -2,6 +2,7 @@ import json
 import sys
 import threading
 import unittest
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -22,7 +23,7 @@ from oi_prototype.server import PrototypeServer  # noqa: E402
 def engine():
     return PrototypeEngine(
         EvidenceStore(ROOT / "prototype" / "corpus" / "oi-policy-demo.v0.1.json"),
-        BoundaryPolicy(ROOT / "config" / "prototype_policy.v0.1.json"),
+        BoundaryPolicy(ROOT / "config" / "prototype_policy.v0.2.json"),
     )
 
 
@@ -76,8 +77,8 @@ class EvaluationTests(unittest.TestCase):
     def test_development_behavioral_suite_passes(self):
         report = run_behavioral_suite(
             engine(),
-            ROOT / "evaluation" / "development" / "suite.v0.1.json",
-            ROOT / "evaluation" / "development" / "scoring.v0.1.json",
+            ROOT / "evaluation" / "development" / "suite.v0.2.json",
+            ROOT / "evaluation" / "development" / "scoring.v0.2.json",
         )
         self.assertGreaterEqual(report["summary"]["passed"], 9)
         self.assertEqual(report["summary"]["passed"], report["summary"]["total"])
@@ -172,6 +173,28 @@ class ServerTests(unittest.TestCase):
         self.assertEqual("evidence", payload["response_class"])
         self.assertGreaterEqual(len(payload["evidence"]), 1)
 
+    def test_rebound_host_is_refused(self):
+        request = urllib.request.Request(
+            self.base_url + "/api/status", headers={"Host": "attacker.example"}
+        )
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(request, timeout=3)
+        self.assertEqual(403, raised.exception.code)
+
+    def test_cross_origin_browser_request_is_refused(self):
+        request = urllib.request.Request(
+            self.base_url + "/api/ask",
+            data=json.dumps({"question": "hello"}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Origin": "https://attacker.example",
+            },
+            method="POST",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(request, timeout=3)
+        self.assertEqual(403, raised.exception.code)
+
     def test_visible_interface_loads(self):
         with urllib.request.urlopen(self.base_url + "/", timeout=3) as response:
             html = response.read().decode("utf-8")
@@ -179,8 +202,6 @@ class ServerTests(unittest.TestCase):
         self.assertIn("Run behavioral evaluation", html)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class BoundaryParaphraseTests(unittest.TestCase):
@@ -297,3 +318,7 @@ class OfflineBundleTests(unittest.TestCase):
         )
         for record in corpus["records"]:
             self.assertIn(record["content_sha256"], content)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -22,7 +22,7 @@ MAX_REQUEST_BYTES = 32 * 1024
 def build_default_engine(root: Path) -> PrototypeEngine:
     return PrototypeEngine(
         EvidenceStore(root / "prototype" / "corpus" / "oi-policy-demo.v0.1.json"),
-        BoundaryPolicy(root / "config" / "prototype_policy.v0.1.json"),
+        BoundaryPolicy(root / "config" / "prototype_policy.v0.2.json"),
     )
 
 
@@ -42,6 +42,30 @@ class PrototypeHandler(BaseHTTPRequestHandler):
     def log_message(self, _format: str, *_args: object) -> None:
         # Questions are not logged. The development server stays quiet by default.
         return
+
+    def _request_is_local(self) -> bool:
+        """Refuse requests that did not address this server as loopback.
+
+        The socket already binds to 127.0.0.1, but a web page in the same
+        browser can still send requests to a loopback port, and DNS rebinding
+        can point a hostile name at it. Checking the Host header (and the
+        Origin header, when a browser sends one) closes that class before it
+        matters, so the pattern is already right when something valuable sits
+        behind this server.
+        """
+        port = self.server.server_address[1]
+        allowed_hosts = {
+            "127.0.0.1", f"127.0.0.1:{port}",
+            "localhost", f"localhost:{port}",
+            "[::1]", f"[::1]:{port}",
+        }
+        if self.headers.get("Host", "") not in allowed_hosts:
+            return False
+        origin = self.headers.get("Origin")
+        if origin in (None, "", "null"):
+            return True
+        allowed_origins = {f"http://{host}" for host in allowed_hosts}
+        return origin in allowed_origins
 
     def _headers(self, status: HTTPStatus, content_type: str, length: int) -> None:
         self.send_response(status)
@@ -78,6 +102,9 @@ class PrototypeHandler(BaseHTTPRequestHandler):
         self._send_json({"error": message, "status": int(status)}, status)
 
     def do_GET(self) -> None:  # noqa: N802
+        if not self._request_is_local():
+            self._send_error_json(HTTPStatus.FORBIDDEN, "loopback requests only")
+            return
         path = urlsplit(self.path).path
         if path == "/api/status":
             self._send_json(self.server.engine.status())
@@ -85,11 +112,11 @@ class PrototypeHandler(BaseHTTPRequestHandler):
         if path == "/api/evaluate":
             report = run_behavioral_suite(
                 self.server.engine,
-                self.server.root / "evaluation" / "development" / "suite.v0.1.json",
+                self.server.root / "evaluation" / "development" / "suite.v0.2.json",
                 self.server.root
                 / "evaluation"
                 / "development"
-                / "scoring.v0.1.json",
+                / "scoring.v0.2.json",
             )
             self._send_json(report)
             return
@@ -111,6 +138,9 @@ class PrototypeHandler(BaseHTTPRequestHandler):
         self._send_bytes(file_path.read_bytes(), content_type)
 
     def do_POST(self) -> None:  # noqa: N802
+        if not self._request_is_local():
+            self._send_error_json(HTTPStatus.FORBIDDEN, "loopback requests only")
+            return
         path = urlsplit(self.path).path
         if path != "/api/ask":
             self._send_error_json(HTTPStatus.NOT_FOUND, "not found")

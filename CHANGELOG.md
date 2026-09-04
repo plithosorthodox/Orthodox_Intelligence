@@ -5,6 +5,26 @@ recorded here. Dates use UTC.
 
 ## Unreleased
 
+- Restored the v0.1 policy, suite, and scoring files to their original
+  content and moved the revised material into properly named v0.2 files, so a
+  version named in a run manifest always resolves to one artifact.
+- Scoped the bare exact-quotation terms to sacred-text contexts: a request to
+  quote the project's own documents verbatim is informational, not a
+  Scripture abstention, with a negative control guarding the distinction.
+- Renamed the duplicated decision OI-008 to OI-011 and taught the repository
+  checker to reject duplicate decision identifiers.
+- Refused requests whose Host or Origin is not loopback in the prototype
+  server, with tests, so the pattern is already right before anything
+  valuable sits behind it.
+- Replaced the manual Python/JavaScript comparison with an automated parity
+  test driving both engines from one probe list, including Greek polytonic,
+  Cyrillic, Devanagari, and case-folding cases.
+- Stated in the bundle itself, the decision log, and the prototype guide that
+  the offline bundle is a transparent development artifact whose hashes
+  detect corruption, not authorship, and must never package protected
+  material.
+- Moved the test module's main block to the end so a direct run executes
+  every test class.
 - Broadened every boundary rule past the literal phrasings of the v0.1 suite
   (policy prototype-boundary-v0.2): paraphrased clerical-identity requests,
   first-person sacramental questions, exact-text requests by book reference or

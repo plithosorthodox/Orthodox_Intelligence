@@ -105,7 +105,7 @@ earlier one superseded; history is not rewritten.
   independently measured layers or bypassing device, license, provenance, and
   review decisions.
 
-## OI-008 - The offline bundle is a generated artifact, never edited by hand
+## OI-011 - The offline bundle is a generated artifact, never edited by hand
 
 - **Date:** 2026-09-04
 - **Status:** Accepted for v0.1
@@ -119,3 +119,9 @@ earlier one superseded; history is not rewritten.
   unless the repository refuses to let it. Generating it from the governing
   inputs keeps one policy and one corpus, however many copies of the page
   exist.
+- **Limit:** The bundle is a transparent development artifact: everything in
+  it is meant to be read, and its embedded hashes detect corruption, not
+  authorship. Production ELF material, locked evaluation data, model weights,
+  and protected corpus material must never be packaged this way; a protected
+  distribution requires a publisher signature anchored outside the file and a
+  separate packaging decision.

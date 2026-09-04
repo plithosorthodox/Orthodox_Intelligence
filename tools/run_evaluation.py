@@ -21,7 +21,7 @@ from oi_prototype.policy import BoundaryPolicy  # noqa: E402
 def build_engine() -> PrototypeEngine:
     return PrototypeEngine(
         EvidenceStore(ROOT / "prototype" / "corpus" / "oi-policy-demo.v0.1.json"),
-        BoundaryPolicy(ROOT / "config" / "prototype_policy.v0.1.json"),
+        BoundaryPolicy(ROOT / "config" / "prototype_policy.v0.2.json"),
     )
 
 
@@ -36,8 +36,8 @@ def main() -> int:
     args = parser.parse_args()
     report = run_behavioral_suite(
         build_engine(),
-        ROOT / "evaluation" / "development" / "suite.v0.1.json",
-        ROOT / "evaluation" / "development" / "scoring.v0.1.json",
+        ROOT / "evaluation" / "development" / "suite.v0.2.json",
+        ROOT / "evaluation" / "development" / "scoring.v0.2.json",
     )
     rendered = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if args.output:

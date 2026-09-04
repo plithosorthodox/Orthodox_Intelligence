@@ -22,11 +22,11 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "prototype" / "oi-offline.html"
 
 CORPUS = ROOT / "prototype" / "corpus" / "oi-policy-demo.v0.1.json"
-POLICY = ROOT / "config" / "prototype_policy.v0.1.json"
-SUITE = ROOT / "evaluation" / "development" / "suite.v0.1.json"
-SCORING = ROOT / "evaluation" / "development" / "scoring.v0.1.json"
+POLICY = ROOT / "config" / "prototype_policy.v0.2.json"
+SUITE = ROOT / "evaluation" / "development" / "suite.v0.2.json"
+SCORING = ROOT / "evaluation" / "development" / "scoring.v0.2.json"
 
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.2.1"
 
 
 def _embed(payload: object) -> str:
@@ -520,11 +520,16 @@ TEMPLATE = """<!DOCTYPE html>
 
   <footer>
     <p>Every record's text is verified against its published hash when this
-    page loads and again before it is shown. This bundle is generated from
-    the same corpus, boundary policy, and development suite as the reference
-    server; retrieval ranking may order results slightly differently. It is
-    an artificial research system: not a member of the Church, not clergy,
-    and not a substitute for a priest or a spiritual father.</p>
+    page loads and again before it is shown. Those hashes detect corruption,
+    not authorship: they are carried inside the file, so they are not a
+    publisher's signature. This bundle is a transparent development artifact,
+    everything in it is meant to be read, and nothing protected, no model
+    weights, no production ELF, no locked evaluation material, may ever be
+    packaged this way. It is generated from the same corpus, boundary policy,
+    and development suite as the reference server; retrieval ranking may
+    order results slightly differently. It is an artificial research system:
+    not a member of the Church, not clergy, and not a substitute for a priest
+    or a spiritual father.</p>
   </footer>
 </main>
 <script id="oi-corpus" type="application/json">{corpus_json}</script>

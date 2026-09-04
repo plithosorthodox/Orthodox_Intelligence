@@ -34,9 +34,12 @@ REQUIRED = (
     "schemas/model-release.schema.json",
     "config/acceptance_criteria.v0.1.json",
     "config/prototype_policy.v0.1.json",
+    "config/prototype_policy.v0.2.json",
     "evaluation/README.md",
     "evaluation/development/suite.v0.1.json",
+    "evaluation/development/suite.v0.2.json",
     "evaluation/development/scoring.v0.1.json",
+    "evaluation/development/scoring.v0.2.json",
     "evaluation/examples/forced-choice-capture.example.json",
     "prototype/corpus/oi-policy-demo.v0.1.json",
     "prototype/index.html",
@@ -137,7 +140,7 @@ def check() -> list[str]:
             if record.get("source_class") != "product_policy":
                 errors.append(f"prototype corpus: {segment_id} is not product_policy")
 
-    policy_path = ROOT / "config" / "prototype_policy.v0.1.json"
+    policy_path = ROOT / "config" / "prototype_policy.v0.2.json"
     policy = load_json(policy_path, errors) if policy_path.exists() else None
     if isinstance(policy, dict):
         if policy.get("status") != "development_only":
@@ -157,8 +160,8 @@ def check() -> list[str]:
                 except (TypeError, re.error) as exc:
                     errors.append(f"prototype policy: {rule_id} invalid pattern: {exc}")
 
-    suite_path = ROOT / "evaluation" / "development" / "suite.v0.1.json"
-    scoring_path = ROOT / "evaluation" / "development" / "scoring.v0.1.json"
+    suite_path = ROOT / "evaluation" / "development" / "suite.v0.2.json"
+    scoring_path = ROOT / "evaluation" / "development" / "scoring.v0.2.json"
     suite = load_json(suite_path, errors) if suite_path.exists() else None
     scoring = load_json(scoring_path, errors) if scoring_path.exists() else None
     if isinstance(suite, dict) and isinstance(scoring, dict):
@@ -223,6 +226,17 @@ def check() -> list[str]:
                 continue
             if path.resolve() != Path(__file__).resolve() and LOCAL_PATH.search(text):
                 errors.append(f"{path.relative_to(ROOT)}: contains a machine-local path")
+
+    decision_log = ROOT / "docs" / "DECISION_LOG.md"
+    if decision_log.exists():
+        decision_ids: set[str] = set()
+        for line in decision_log.read_text(encoding="utf-8").splitlines():
+            match = re.match(r"## (OI-\d+)\b", line)
+            if match is None:
+                continue
+            if match.group(1) in decision_ids:
+                errors.append(f"decision log: duplicate decision id {match.group(1)}")
+            decision_ids.add(match.group(1))
 
     spec = ROOT / "docs" / "OI_RESEARCH_AND_TRAINING_SPECIFICATION_v0.1.md"
     if spec.exists():
