@@ -1,17 +1,33 @@
 # Orthodox Intelligence
 
-Orthodox Intelligence (OI) is a research and engineering project for a private,
-offline-capable assistant whose behavior is deliberately shaped, whose governing
-framework is inspectable, and whose substantive Orthodox answers are grounded in
-the curated texts and provenance published by Plithos.
+Orthodox Intelligence (OI) is the research and engineering program behind the
+Orthodox configuration of **Uvaha**, a local-first AI application. The first
+integrated model configuration is **Sofiia v0.1**: OLMo 2 7B Instruct provides
+the language/reasoning substrate and the versioned Plithos corpus supplies
+retrieved Orthodox evidence with resolvable provenance.
 
-The repository now includes an executable local source-navigator vertical slice,
-a verified English Plithos evidence package integration, reusable Plithos search,
-and deterministic Old/New Calendar support. OLMo 2 7B Instruct is selected as
-the reference stock substrate, but model weights are not bundled and the current
-answer path remains retrieval-only until the generative evidence/verifier path is
-wired and tested. The repository does **not** yet contain a production Ethical
-Learning Framework (ELF) or an application ready for pastoral or public use.
+The repository now includes the verified English Plithos evidence package
+integration, reusable Plithos search, deterministic Old/New Calendar support,
+a loopback-only OLMo runtime adapter, and a first evidence-packed generation
+path. Model weights are not bundled. Sofiia-generated answers are shown only
+after cited segment IDs resolve to the retrieved evidence and registered direct
+quotations match that evidence exactly. The repository does **not** yet contain
+a production Ethical Learning Framework (ELF), a frozen quantized model artifact,
+or an application ready for pastoral or public release.
+
+## Names and boundaries
+
+- **Uvaha** is the application/product name.
+- **Sofiia v0.1** is the first integrated model configuration.
+- **OLMo 2 7B Instruct** is Sofiia v0.1's selected language/reasoning substrate.
+- **Plithos** is the versioned evidence and retrieval system; in v0.1 its content
+  is retrieved at inference rather than baked into the model weights.
+- **Orthodox Intelligence** remains the research/program lineage and Orthodox
+  system architecture.
+
+These names do not collapse the technical layers. Substrate weights, Plithos
+corpus, future ELF text, retrieval settings, verifier, and application version
+remain independently versioned and testable.
 
 ## The design in one sentence
 
@@ -24,17 +40,17 @@ OI separates four things that must not be allowed to blur together:
 
 ```mermaid
 flowchart TD
-    Q["User question"] --> B["Boundary and intent checks"]
+    Q["User question in Uvaha"] --> B["Boundary and intent checks"]
     B --> R["Local Plithos retrieval"]
-    R --> M["Local model: substrate + ELF"]
+    R --> M["Sofiia: local OLMo generation"]
     M --> V["Quote, citation, and identity verification"]
-    V --> A["Answer with sources or an explicit abstention"]
+    V --> A["Verified answer or explicit abstention"]
 ```
 
-The model is not presented as a Christian, a member of the Church, clergy, a
+Sofiia is not presented as a Christian, a member of the Church, clergy, a
 spiritual father, or a substitute for sacramental and pastoral life. It is an
-artificial system that reasons under a documented Orthodox-informed framework
-and identifies the sources on which its answers rely.
+artificial system whose Orthodox factual support is tied to identifiable Plithos
+evidence.
 
 ## Repository map
 
@@ -49,47 +65,57 @@ and identifies the sources on which its answers rely.
 - `docs/DECISION_LOG.md` - decisions already made and their scope.
 - `docs/OPEN_QUESTIONS.md` - matters intentionally not guessed in v0.1.
 - `docs/MODEL_CARD_TEMPLATE.md` - evidence required for any model candidate.
-- `config/model_olmo2_7b_instruct.v1.json` - selected OLMo 2 reference-substrate
-  manifest; no weights are stored in this repository.
+- `config/model_olmo2_7b_instruct.v1.json` - selected OLMo 2 substrate manifest.
+- `config/model_sofiia.v0.1.json` - integrated Sofiia v0.1 model manifest.
+- `config/plithos_corpus.v1.json` - pinned Plithos evidence manifest.
 - `schemas/` - machine-readable records for corpus, training, evaluation, and
   release manifests.
 - `config/acceptance_criteria.v0.1.json` - provisional measurable gates.
 - `tools/check_repository.py` and `tests/` - dependency-free repository checks.
-- `prototype/` and `oi_prototype/` - visible offline prototype and its local
-  retrieval, calendar, policy, verifier, HTTP, and model-runtime adapter
-  components.
+- `prototype/` and `oi_prototype/` - Uvaha browser prototype and local retrieval,
+  calendar, policy, verifier, HTTP, and model-runtime components.
 - `evaluation/` - development behavioral suite and runtime-neutral forced-choice
   scoring contract.
 
-## Run the visible prototype
+## Run Uvaha in evidence-only mode
 
 Python 3.10 or later is sufficient. No packages need to be installed for the
-retrieval-only prototype.
+retrieval-only path.
 
 ```bash
 python tools/serve_prototype.py
 ```
 
-Then open `http://127.0.0.1:8765`. See `docs/PROTOTYPE.md` for its exact scope and
-limitations.
+Then open `http://127.0.0.1:8765`.
+
+## Run Sofiia v0.1 with a local model process
+
+The development adapter accepts only an explicitly configured loopback
+OpenAI-compatible llama.cpp origin. It has no remote fallback.
+
+```bash
+python tools/serve_prototype.py --model-endpoint http://127.0.0.1:8080
+```
+
+The selected OLMo weights must already be running in that local process. This
+repository does not download or bundle them. The next model-artifact step is to
+freeze the exact upstream revision, conversion/quantization, tokenizer, and
+local weight hash before measured experimentation.
 
 ## Selected model substrate
 
 The project owner selected `allenai/OLMo-2-1124-7B-Instruct` as the reference
-stock substrate (S0). The model manifest records its Apache-2.0 license and the
-project's no-remote-fallback requirement. `oi_prototype/model_runtime.py` provides
-a development-only adapter to an explicitly configured loopback llama.cpp server.
-This adapter does not download weights, does not contact a hosted inference API,
-and does not select llama.cpp as the eventual production mobile runtime.
+stock substrate. `oi_prototype/model_runtime.py` provides the development-only
+loopback adapter; `oi_prototype/grounded_generation.py` packs retrieved Plithos
+evidence into a strict generation contract and performs deterministic citation
+and quotation checks. One bounded correction is permitted after verification
+failure; a second failure becomes an abstention.
 
-Before any experiment, the exact upstream model revision and the hash of the
-local weight artifact must be frozen in the experiment record. Quantization and
-the production mobile runtime remain subject to representative-device testing.
+This is not yet a semantic entailment verifier. The current deterministic gate
+proves citation membership and exact quotation provenance; broader unsupported-
+claim detection remains a separate evaluation and engineering problem.
 
 ## Validate the scaffold
-
-Python 3.10 or later is sufficient; the validation path has no third-party
-dependencies.
 
 ```bash
 python tools/check_repository.py
@@ -99,11 +125,9 @@ python -m unittest discover -s tests -v
 
 ## Current status
 
-Version `0.1` of the specification remains the design baseline derived from the
-OEDMF/substrate distinction in Samuel Sheffield's dissertation and the subsequent
-forced-choice experiment. The English Plithos corpus, search mechanism, and
-calendar are integrated. OLMo 2 7B Instruct is selected and has a local runtime
-adapter contract, but the model is not yet invoked in the answer path. The next
-engineering increment is evidence-packed generation followed by deterministic
-citation/quotation verification. Experimental ELFs remain research evidence, not
-production doctrine.
+Uvaha now has a real optional generative seam: when a local OLMo runtime is
+connected, Sofiia v0.1 retrieves Plithos evidence, generates locally, and exposes
+the result only after citation/quotation verification. Without the runtime, the
+same UI remains a deterministic evidence navigator. Production ELF work,
+quantized mobile-runtime selection, semantic claim verification, and target-
+device performance testing remain future increments.
