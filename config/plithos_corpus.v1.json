@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "corpus_repository": "plithosorthodox/plithos_corpus",
-  "corpus_commit": "c788cda3e9c24246ab41cfd6aa74ecbcaf082b83",
+  "corpus_commit": "00932ede1e4c1af6f5841278078508a36cd6de33",
   "upstream_repository": "plithosorthodox/plithos.org",
   "upstream_commit": "10b8e63b157765ed902e7dfe2f7c01f1c390deb9",
   "language": "en",
@@ -42,5 +42,23 @@
       "source_class",
       "rights_status"
     ]
+  },
+  "calendar": {
+    "manifest_file": "calendar/manifest.json",
+    "language": "en",
+    "calendars": {
+      "new": "Revised Julian",
+      "old": "Julian"
+    },
+    "old_calendar_offset_days": 13,
+    "engine": {
+      "file": "calendar/plithos-calendar.v2.js",
+      "module_export": "calendar",
+      "sha256": "2b5d0a7ed62f26d7e194670b892d7714ca4c428d17bb76509e3c7bc99e5a942f"
+    },
+    "tables": {
+      "file": "calendar/calendar-tables.v2.en.json",
+      "sha256": "500f372a24eb1c1d4534b640047e0f376ced6e95c55aebd204ecad80233e5ff4"
+    }
   }
 }
