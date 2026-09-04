@@ -1,4 +1,4 @@
-"""Loopback-only HTTP server for the visible OI research prototype."""
+"""Loopback-only HTTP server for the visible Uvaha research prototype."""
 
 from __future__ import annotations
 
@@ -13,30 +13,51 @@ from urllib.parse import urlsplit
 from .corpus import EvidenceStore
 from .engine import PrototypeEngine
 from .evaluation import run_behavioral_suite
+from .model_runtime import LlamaCppServerRuntime
 from .plithos_store import PlithosEvidenceStore
 from .policy import BoundaryPolicy
 
 MAX_REQUEST_BYTES = 32 * 1024
 
 
-def build_default_engine(root: Path, corpus_install: Path | None = None, *, force_demo: bool = False) -> PrototypeEngine:
+def build_default_engine(
+    root: Path,
+    corpus_install: Path | None = None,
+    *,
+    force_demo: bool = False,
+    model_endpoint: str | None = None,
+) -> PrototypeEngine:
     policy = BoundaryPolicy(root / "config" / "prototype_policy.v0.2.json")
     install_dir = corpus_install or (root / "artifacts" / "plithos")
     if not force_demo and (install_dir / "installed.json").is_file():
         store = PlithosEvidenceStore(install_dir)
     else:
         store = EvidenceStore(root / "prototype" / "corpus" / "oi-policy-demo.v0.1.json")
-    return PrototypeEngine(store, policy)
+    runtime = LlamaCppServerRuntime(model_endpoint) if model_endpoint else None
+    return PrototypeEngine(store, policy, model_runtime=runtime)
 
 
 class PrototypeServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address: tuple[str, int], root: Path, corpus_install: Path | None = None, *, force_demo: bool = False):
+    def __init__(
+        self,
+        address: tuple[str, int],
+        root: Path,
+        corpus_install: Path | None = None,
+        *,
+        force_demo: bool = False,
+        model_endpoint: str | None = None,
+    ):
         self.root = root
         self.static_root = root / "prototype"
         self.corpus_install = corpus_install or (root / "artifacts" / "plithos")
-        self.engine = build_default_engine(root, corpus_install=self.corpus_install, force_demo=force_demo)
+        self.engine = build_default_engine(
+            root,
+            corpus_install=self.corpus_install,
+            force_demo=force_demo,
+            model_endpoint=model_endpoint,
+        )
         super().__init__(address, PrototypeHandler)
 
 
@@ -48,7 +69,14 @@ class PrototypeHandler(BaseHTTPRequestHandler):
 
     def _request_is_local(self) -> bool:
         port = self.server.server_address[1]
-        allowed_hosts = {"127.0.0.1", f"127.0.0.1:{port}", "localhost", f"localhost:{port}", "[::1]", f"[::1]:{port}"}
+        allowed_hosts = {
+            "127.0.0.1",
+            f"127.0.0.1:{port}",
+            "localhost",
+            f"localhost:{port}",
+            "[::1]",
+            f"[::1]:{port}",
+        }
         if self.headers.get("Host", "") not in allowed_hosts:
             return False
         origin = self.headers.get("Origin")
@@ -64,15 +92,33 @@ class PrototypeHandler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self'; style-src 'self'; "
+            "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+            "base-uri 'none'; frame-ancestors 'none'",
+        )
         self.end_headers()
 
-    def _send_bytes(self, payload: bytes, content_type: str, status: HTTPStatus = HTTPStatus.OK) -> None:
+    def _send_bytes(
+        self,
+        payload: bytes,
+        content_type: str,
+        status: HTTPStatus = HTTPStatus.OK,
+    ) -> None:
         self._headers(status, content_type, len(payload))
         self.wfile.write(payload)
 
-    def _send_json(self, value: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
-        self._send_bytes((json.dumps(value, ensure_ascii=False) + "\n").encode("utf-8"), "application/json; charset=utf-8", status)
+    def _send_json(
+        self,
+        value: Any,
+        status: HTTPStatus = HTTPStatus.OK,
+    ) -> None:
+        self._send_bytes(
+            (json.dumps(value, ensure_ascii=False) + "\n").encode("utf-8"),
+            "application/json; charset=utf-8",
+            status,
+        )
 
     def _send_error_json(self, status: HTTPStatus, message: str) -> None:
         self._send_json({"error": message, "status": int(status)}, status)
@@ -112,10 +158,20 @@ class PrototypeHandler(BaseHTTPRequestHandler):
             if not file_path.is_file():
                 self._send_error_json(HTTPStatus.NOT_FOUND, "calendar not installed")
                 return
-            content_type = "text/javascript; charset=utf-8" if file_path.suffix == ".js" else "application/json; charset=utf-8"
+            content_type = (
+                "text/javascript; charset=utf-8"
+                if file_path.suffix == ".js"
+                else "application/json; charset=utf-8"
+            )
             self._send_bytes(file_path.read_bytes(), content_type)
             return
-        static_files = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest"}
+        static_files = {
+            "/": "index.html",
+            "/index.html": "index.html",
+            "/app.js": "app.js",
+            "/styles.css": "styles.css",
+            "/manifest.webmanifest": "manifest.webmanifest",
+        }
         name = static_files.get(path)
         if name is None:
             self._send_error_json(HTTPStatus.NOT_FOUND, "not found")
@@ -139,29 +195,65 @@ class PrototypeHandler(BaseHTTPRequestHandler):
             self._send_error_json(HTTPStatus.BAD_REQUEST, "invalid content length")
             return
         if size <= 0 or size > MAX_REQUEST_BYTES:
-            self._send_error_json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "invalid request size")
+            self._send_error_json(
+                HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                "invalid request size",
+            )
             return
         try:
             payload = json.loads(self.rfile.read(size).decode("utf-8"))
         except (UnicodeError, json.JSONDecodeError):
-            self._send_error_json(HTTPStatus.BAD_REQUEST, "request must be UTF-8 JSON")
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                "request must be UTF-8 JSON",
+            )
             return
         question = payload.get("question") if isinstance(payload, dict) else None
         if not isinstance(question, str):
-            self._send_error_json(HTTPStatus.BAD_REQUEST, "question must be a string")
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                "question must be a string",
+            )
             return
         self._send_json(self.server.engine.ask(question).as_dict())
 
 
-def serve(root: Path, port: int, corpus_install: Path | None = None, *, force_demo: bool = False) -> None:
-    server = PrototypeServer(("127.0.0.1", port), root, corpus_install=corpus_install, force_demo=force_demo)
+def serve(
+    root: Path,
+    port: int,
+    corpus_install: Path | None = None,
+    *,
+    force_demo: bool = False,
+    model_endpoint: str | None = None,
+) -> None:
+    server = PrototypeServer(
+        ("127.0.0.1", port),
+        root,
+        corpus_install=corpus_install,
+        force_demo=force_demo,
+        model_endpoint=model_endpoint,
+    )
     host, selected_port = server.server_address
     status = server.engine.status()
-    print(f"OI research prototype: http://{host}:{selected_port}")
-    print(f"Corpus mode: {status['corpus_mode']} · {status['record_count']} searchable text records")
+    print(f"Uvaha research prototype: http://{host}:{selected_port}")
+    print(
+        f"Corpus mode: {status['corpus_mode']} · "
+        f"{status['record_count']} searchable text records"
+    )
     if status.get("corpus_mode") == "plithos":
         print("Calendar: Revised Julian + Julian")
-    print("Loopback only; questions are not written to logs or disk.")
+    if status.get("generative_model_loaded"):
+        runtime = status.get("model_runtime") or {}
+        print(
+            f"Model: Sofiia v0.1 · {runtime.get('runtime', 'local runtime')} · "
+            "loopback only"
+        )
+    else:
+        print("Model: Sofiia v0.1 selected but not connected")
+    print(
+        "Questions are not written to logs or disk. No question is sent to a "
+        "non-loopback model endpoint."
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:
