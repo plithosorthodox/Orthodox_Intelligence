@@ -53,7 +53,7 @@ earlier one superseded; history is not rewritten.
 ## OI-006 - No model or runtime selected in v0.1
 
 - **Date:** 2026-09-04
-- **Status:** Accepted for v0.1
+- **Status:** Superseded in part by OI-012; runtime and device-fit requirements remain
 - **Decision:** Select a model only after license screening and measurement on
   representative target devices.
 - **Reason:** Current popularity and desktop benchmark rank do not establish
@@ -125,3 +125,24 @@ earlier one superseded; history is not rewritten.
   and protected corpus material must never be packaged this way; a protected
   distribution requires a publisher signature anchored outside the file and a
   separate packaging decision.
+
+## OI-012 - OLMo 2 7B Instruct is the reference substrate
+
+- **Date:** 2026-09-04
+- **Status:** Accepted for v0.1 development; supersedes OI-006 only as to model family
+- **Decision:** Use `allenai/OLMo-2-1124-7B-Instruct` as OI's reference stock
+  substrate (S0) and starting model family for subsequent OI-specific experiments.
+  Do not bundle weights in this repository. Freeze the exact upstream revision,
+  converted/quantized artifact hash, tokenizer, and decoding settings before any
+  measured run. Production runtime and quantization remain unselected until
+  representative-device testing.
+- **Reason:** The project owner's completed forced-choice experiment placed OLMo 2
+  7B Instruct among the strongest instruction-tuned local models tested. Ai2 also
+  publishes the model's training data, code, recipes, checkpoints, and evaluation
+  artifacts, making the substrate unusually inspectable for OI's research goals.
+- **License and privacy:** The selected OLMo 2 checkpoint is Apache-2.0 licensed.
+  The first development adapter targets the MIT-licensed llama.cpp runtime because
+  current upstream llama.cpp supports OLMo 2 and can run an OpenAI-compatible
+  server locally. The adapter accepts loopback HTTP only and provides no remote
+  inference fallback. This development choice does not select llama.cpp as the
+  eventual mobile production runtime.
