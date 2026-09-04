@@ -121,8 +121,8 @@ class PrototypeEngine:
             if callable(suggest):
                 suggestion = suggest(question)
             text = (
-                "The installed corpus does not contain enough retrievable evidence "
-                "for that query. No model-memory answer was substituted."
+                "The installed corpus does not contain enough evidence for that query. "
+                "No model-memory answer was substituted."
             )
             if suggestion:
                 text += f' Did you mean "{suggestion}"?'
