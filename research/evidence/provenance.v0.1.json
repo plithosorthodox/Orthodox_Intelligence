@@ -1,0 +1,71 @@
+{
+  "register_version": "0.1",
+  "created_utc": "2026-09-04",
+  "storage_policy": "Hashes and non-sensitive descriptions only. Source artifacts remain outside the working repository.",
+  "artifacts": [
+    {
+      "artifact_id": "DISSERTATION-FINAL-2026",
+      "filename": "Sheffield_Samuel_-_Dissertation_TDE_and_Ethical_AI_-_PHD_-_FINAL.docx",
+      "role": "Dissertation evidence, including historical Christian ELF instruments",
+      "bytes": 32590693,
+      "sha256": "f5c572f646daa3dad84f39306c6931ff76c208b6d0fb883f61075f4b85b70458",
+      "access_class": "restricted_not_committed"
+    },
+    {
+      "artifact_id": "FORCED-CHOICE-SCREEN-BANK-30",
+      "filename": "screen_items.json",
+      "role": "Historical 30-item development/screening bank",
+      "bytes": 11388,
+      "sha256": "35f5be7a36541d42a52707c5c5b6033c4867f563e625cbd122e731b8f48702d8",
+      "access_class": "restricted_not_committed"
+    },
+    {
+      "artifact_id": "FORCED-CHOICE-HARNESS",
+      "filename": "tde_forced_choice.py",
+      "role": "Historical local-model forced-choice collection harness",
+      "bytes": 12049,
+      "sha256": "9e3518652dbc46c57eb26400e818417961be067a95d6fc86a2e6c4487593a6a3",
+      "access_class": "restricted_not_committed"
+    },
+    {
+      "artifact_id": "FORCED-CHOICE-HARD-ITEMS",
+      "filename": "hard_items.json",
+      "role": "Historical nine-item intervention subset",
+      "bytes": 73,
+      "sha256": "b7cfa19de871a0899f732d0f83a6036e54e15e00f3e67c0d255ba92c6c48cf88",
+      "access_class": "restricted_not_committed"
+    },
+    {
+      "artifact_id": "FORCED-CHOICE-DESCRIPTION",
+      "filename": "Forced Choice Experiment Description.docx",
+      "role": "Historical experiment description",
+      "bytes": 27545,
+      "sha256": "da200287e490d66fabb6c846d224dfae590bc85945e49ce293884fedf27d726e",
+      "access_class": "restricted_not_committed"
+    },
+    {
+      "artifact_id": "FORCED-CHOICE-RESULT-COMBINER",
+      "filename": "combine_results.py",
+      "role": "Historical result normalization utility",
+      "bytes": 2742,
+      "sha256": "1cb3bd6bcfa7537726616f3274bd7e2240a6681af6bd3a5347e1c8c0d9efc95a",
+      "access_class": "restricted_not_committed"
+    },
+    {
+      "artifact_id": "FORCED-CHOICE-SCREEN-BANK-34",
+      "filename": "screen_items.json",
+      "role": "Historical final 34-item forced-choice bank",
+      "bytes": 12893,
+      "sha256": "dd97febb23a21b671e14b8014b5d0de97053a8e0310bd98bdd81dcc71ec9ad2b",
+      "access_class": "restricted_not_committed"
+    },
+    {
+      "artifact_id": "FORCED-CHOICE-METHODS",
+      "filename": "Forced Choice Experiment_Questions-Methods-Description.docx",
+      "role": "Historical questions, methods, and description",
+      "bytes": 28478,
+      "sha256": "79a33a5f1cf9bea97ce1717a0c582af0de52dbbafdcf736ef90f17a8592314cb",
+      "access_class": "restricted_not_committed"
+    }
+  ]
+}

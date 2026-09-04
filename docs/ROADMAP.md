@@ -3,6 +3,15 @@
 Progress is gated by evidence, not by calendar dates. Work may proceed in parallel
 only when it cannot contaminate a later blinded evaluation.
 
+## Current executable slice
+
+The repository now contains a retrieval-only vertical slice across the eventual
+application path: visible browser UI, deterministic boundaries, SQLite FTS5,
+citation and hash resolution, explicit abstention, and an automated development
+suite. This is engineering scaffolding across later phases, not evidence that
+Phases 0-6 are complete. It imports no Plithos content and selects no model,
+runtime, mobile framework, or production ELF.
+
 ## Phase 0 - Specification freeze
 
 Deliverables:
@@ -27,6 +36,8 @@ Deliverables:
 - transformation and exclusion report;
 - SQLite full-text prototype; and
 - immutable manifest with file hashes.
+
+The reproducible Plithos export is the next executable work item.
 
 Exit: two clean exports from the same Plithos commit produce identical content
 hashes, every shipped segment resolves to a source record, and redistribution
@@ -112,4 +123,3 @@ Deliverables:
 
 Exit: release, limited pilot, further research, or no release is recorded as a
 decision. Nothing ships merely because the engineering work is complete.
-

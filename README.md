@@ -5,9 +5,10 @@ offline-capable assistant whose behavior is deliberately shaped, whose governing
 framework is inspectable, and whose substantive Orthodox answers are grounded in
 the curated texts and provenance published by Plithos.
 
-This repository begins with the research program. It does **not** yet contain a
-trained model, a production Ethical Learning Framework (ELF), or an application
-ready for pastoral or public use.
+This repository begins with the research program. It now includes an executable
+local source-navigator vertical slice, but it does **not** yet contain a trained
+model, a production Ethical Learning Framework (ELF), a Plithos corpus export, or
+an application ready for pastoral or public use.
 
 ## The design in one sentence
 
@@ -49,6 +50,21 @@ and identifies the sources on which its answers rely.
   release manifests.
 - `config/acceptance_criteria.v0.1.json` - provisional measurable gates.
 - `tools/check_repository.py` and `tests/` - dependency-free repository checks.
+- `prototype/` and `oi_prototype/` - visible offline demonstration and its local
+  retrieval, policy, verifier, and HTTP components.
+- `evaluation/` - development behavioral suite and runtime-neutral forced-choice
+  scoring contract.
+
+## Run the visible prototype
+
+Python 3.10 or later is sufficient. No packages need to be installed.
+
+```bash
+python tools/serve_prototype.py
+```
+
+Then open `http://127.0.0.1:8765`. See `docs/PROTOTYPE.md` for its exact scope and
+limitations.
 
 ## Validate the scaffold
 
@@ -57,14 +73,14 @@ dependencies.
 
 ```bash
 python tools/check_repository.py
+python tools/run_evaluation.py --fail-on-any
 python -m unittest discover -s tests -v
 ```
 
 ## Current status
 
-Version `0.1` is a design baseline derived from the OEDMF/substrate distinction
-in Samuel Sheffield's dissertation and the subsequent forced-choice experiment.
-Experimental ELFs are evidence, not production doctrine. Numerical thresholds
-in this first version are proposed engineering gates and must be ratified against
-a pilot benchmark before they become release requirements.
-
+Version `0.1` of the specification remains the design baseline derived from the
+OEDMF/substrate distinction in Samuel Sheffield's dissertation and the subsequent
+forced-choice experiment. The executable slice is retrieval-only and uses eight
+project-policy excerpts, so it makes no claim about model quality or Orthodox
+answer quality. Experimental ELFs are evidence, not production doctrine.

@@ -69,3 +69,38 @@ earlier one superseded; history is not rewritten.
 - **Reason:** Experimental utility does not itself confer doctrinal or production
   authority.
 
+## OI-008 - Local-first product with an optional control plane
+
+- **Date:** 2026-09-04
+- **Status:** Accepted direction; implementation details open
+- **Decision:** Preserve a fully offline core while allowing separately disclosed
+  network services for identity, entitlements, signed-update discovery,
+  user-authorized connectors, verified roles, and parish administration. A
+  network service does not receive questions or perform model inference by
+  default.
+- **Reason:** Accounts, updates, subscriptions, and external applications require
+  connectivity, but they do not require surrendering local inference or private
+  conversation content.
+
+## OI-009 - Product tiers do not alter integrity boundaries
+
+- **Date:** 2026-09-04
+- **Status:** Accepted direction
+- **Decision:** Citations, quotation fidelity, truthful identity, uncertainty,
+  and pastoral limitations apply to every tier. Paid and verified tiers may add
+  capability, depth, workflow, integration, and organization controls, but do not
+  purchase greater truth or spiritual authority.
+- **Reason:** Safety and evidentiary integrity are properties of the product, not
+  premium benefits.
+
+## OI-010 - Start with an executable retrieval-only slice
+
+- **Date:** 2026-09-04
+- **Status:** Accepted for the first prototype
+- **Decision:** Implement the visible question, boundary, retrieval, citation,
+  verification, and evaluation path before selecting a model or importing
+  Plithos. The demonstration corpus contains only hashed project-policy excerpts,
+  and the interface reports that no model or ELF is loaded.
+- **Reason:** This produces something testable now without merging the four
+  independently measured layers or bypassing device, license, provenance, and
+  review decisions.

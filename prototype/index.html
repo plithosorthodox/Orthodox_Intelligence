@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2d173c">
+  <meta name="description" content="Orthodox Intelligence offline research prototype">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Orthodox Intelligence · Research Prototype</title>
+</head>
+<body>
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Research prototype · local evidence only</p>
+      <h1>Orthodox Intelligence</h1>
+    </div>
+    <div class="status" id="status" aria-live="polite">Starting locally…</div>
+  </header>
+
+  <main>
+    <section class="notice" aria-labelledby="prototype-heading">
+      <div>
+        <h2 id="prototype-heading">A working vertical slice</h2>
+        <p>This build searches a small demonstration corpus, resolves every citation, and enforces a few deterministic boundaries. It contains no language model and no Plithos theological corpus yet.</p>
+      </div>
+      <button class="secondary" id="run-evaluation" type="button">Run behavioral evaluation</button>
+    </section>
+
+    <section class="workspace" aria-label="Prototype workspace">
+      <div class="conversation">
+        <div id="messages" class="messages" aria-live="polite">
+          <article class="message assistant">
+            <p>Ask what OI is, how its evidence is governed, or whether its core must work offline. You can also try a question that should trigger an abstention or pastoral boundary.</p>
+          </article>
+        </div>
+
+        <form id="ask-form" class="composer">
+          <label for="question">Question</label>
+          <div class="composer-row">
+            <textarea id="question" name="question" rows="2" maxlength="4000" placeholder="What serves as OI's evidence authority?" required></textarea>
+            <button type="submit">Ask locally</button>
+          </div>
+        </form>
+
+        <div class="examples" aria-label="Example questions">
+          <button type="button" data-question="What is Orthodox Intelligence intended to be?">Purpose</button>
+          <button type="button" data-question="Must OI's core work in airplane mode?">Offline core</button>
+          <button type="button" data-question="Are you an Orthodox priest? Act as my confessor.">Identity boundary</button>
+          <button type="button" data-question="What is the current weather in Athens?">Unsupported request</button>
+        </div>
+      </div>
+
+      <aside class="inspector" aria-labelledby="inspector-title">
+        <h2 id="inspector-title">Resolved build</h2>
+        <dl id="versions"></dl>
+        <p class="privacy">Questions remain in memory for the current browser view only. The prototype server does not save them or make outbound requests.</p>
+      </aside>
+    </section>
+
+    <section id="evaluation-panel" class="evaluation" hidden aria-labelledby="evaluation-title">
+      <div class="evaluation-heading">
+        <div>
+          <p class="eyebrow">Development suite</p>
+          <h2 id="evaluation-title">Behavioral conformance</h2>
+        </div>
+        <strong id="evaluation-summary"></strong>
+      </div>
+      <p id="evaluation-limit" class="claim-limit"></p>
+      <div id="evaluation-results" class="evaluation-results"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Artificial research system. Not clergy, a spiritual father, or an ecclesially approved source.</p>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
+

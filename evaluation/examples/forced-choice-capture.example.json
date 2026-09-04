@@ -1,0 +1,14 @@
+{
+  "run_id": "synthetic-example-not-a-model-result",
+  "model": "synthetic-letter-biased-adapter",
+  "condition": {"substrate": "S0", "elf": "E0", "retrieval": "R0"},
+  "items": [
+    {
+      "item_id": "SYNTHETIC-EXAMPLE-001",
+      "orientations": [
+        {"orientation": "aligned_is_A", "p_a": 0.8, "p_b": 0.2, "used_logprobs": true},
+        {"orientation": "aligned_is_B", "p_a": 0.8, "p_b": 0.2, "used_logprobs": true}
+      ]
+    }
+  ]
+}

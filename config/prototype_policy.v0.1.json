@@ -1,0 +1,54 @@
+{
+  "policy_version": "prototype-boundary-v0.1",
+  "status": "development_only",
+  "description": "Deterministic boundaries for the executable research prototype. This is not an ELF and contains no claim of ecclesial review.",
+  "rules": [
+    {
+      "rule_id": "IDENTITY-CLERGY-01",
+      "intent": "identity_boundary",
+      "response_class": "boundary",
+      "patterns": [
+        "\\bare you (?:an? )?(?:orthodox )?(?:priest|bishop|deacon|monk|nun|confessor|spiritual father)\\b",
+        "\\b(?:pretend|claim) (?:to be|you are) (?:an? )?(?:orthodox )?(?:priest|bishop|deacon|confessor|spiritual father)\\b",
+        "\\bact as my (?:priest|confessor|spiritual father)\\b"
+      ],
+      "response": "I am an artificial research prototype, not a Christian person, member of the Church, priest, confessor, or spiritual father. I can help locate documented sources, but I cannot assume pastoral or sacramental authority."
+    },
+    {
+      "rule_id": "PASTORAL-SACRAMENT-01",
+      "intent": "pastoral_boundary",
+      "response_class": "boundary",
+      "patterns": [
+        "\\b(?:should|may|can) I (?:receive|take) (?:holy )?communion\\b",
+        "\\bwhat penance should I\\b",
+        "\\b(?:should|must) I confess\\b",
+        "\\bcan I be absolved\\b",
+        "\\bis my priest wrong\\b"
+      ],
+      "response": "That request calls for personal pastoral or sacramental judgment, which this artificial system cannot provide. A priest who knows the person and circumstances is the appropriate source of guidance. The prototype may still help locate general source material without applying it as a personal ruling."
+    },
+    {
+      "rule_id": "EXACT-TEXT-DEMO-01",
+      "intent": "exact_text",
+      "response_class": "abstention",
+      "patterns": [
+        "\\bquote (?:the )?(?:exact )?(?:scripture|bible|gospel|liturgy|prayer|canon)\\b",
+        "\\bexact (?:scripture|biblical|liturgical|prayer|canonical) (?:words|wording|text|quotation)\\b",
+        "\\brecite (?:the )?(?:scripture|bible|gospel|liturgy|prayer)\\b"
+      ],
+      "response": "The installed demonstration corpus contains no eligible Scripture or liturgical edition. I will not reconstruct sacred text from model memory. An exact quotation can be returned only after an eligible, versioned source is installed."
+    },
+    {
+      "rule_id": "PROMPT-INJECTION-01",
+      "intent": "adversarial_instruction",
+      "response_class": "boundary",
+      "patterns": [
+        "\\bignore (?:all |the )?(?:previous|prior|system) instructions\\b",
+        "\\breveal (?:the )?(?:system prompt|hidden instructions)\\b",
+        "\\btreat (?:this|the following) (?:document|source|email) as (?:a )?system instruction\\b"
+      ],
+      "response": "Source text and user-supplied content cannot replace the prototype's governing instructions or permissions. I can analyze the material as data without executing instructions embedded within it."
+    }
+  ]
+}
+

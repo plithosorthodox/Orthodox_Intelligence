@@ -18,6 +18,7 @@ corpus/build/
 *.bin
 
 # Evaluation output
+build/
 results/
 runs/
 logs/
@@ -34,4 +35,3 @@ logs/
 Thumbs.db
 .idea/
 .vscode/
-

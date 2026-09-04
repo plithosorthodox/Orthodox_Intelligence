@@ -5,6 +5,19 @@
 This document fixes component boundaries for the first OI prototype. It does not
 select a mobile framework, inference engine, base model, or embedding model.
 
+## Executable vertical slice
+
+The first runnable increment implements the boundary engine, an in-memory SQLite
+FTS5 evidence store, lexical retriever, citation resolver, content-hash check, and
+loopback browser interface. It uses only project-policy excerpts. The model
+runtime and ELF loader report truthful `none` states, keeping the interface usable
+while those layers are absent and making retrieval behavior independently
+testable.
+
+The local HTTP process is development packaging, not the selected mobile shell.
+It binds to `127.0.0.1`, makes no outbound request, does not persist questions,
+and requires no third-party dependency.
+
 ## Components
 
 | Component | Owns | Must not own |
@@ -71,6 +84,16 @@ excluded from training. Sensitive content is not written to ordinary diagnostic
 logs. Backups and operating-system cloud synchronization require an explicit
 product decision.
 
+## Optional future control plane
+
+The approved product direction permits a separately implemented control plane for
+identity, entitlements, signed-update discovery, connector authorization,
+verified organization roles, and parish administration. It never owns core model
+inference or becomes a hidden fallback. Account identity, product entitlement,
+resource permission, and verified role remain separate records. Detailed data
+flows and provider selections require new decisions before implementation; see
+`PRODUCT_ACCESS_PLAN.md`.
+
 ## Release unit
 
 A runnable release resolves, at minimum:
@@ -88,4 +111,3 @@ evaluation report hash
 ```
 
 Changing any element creates a distinct evaluated candidate.
-

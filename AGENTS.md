@@ -31,7 +31,9 @@ repository. The specification is
 - Make the smallest coherent change and update the documents, schemas, and tests
   that the change affects.
 - Run `python tools/check_repository.py` and
-  `python -m unittest discover -s tests -v` before committing.
+  `python -m unittest discover -s tests -v` before committing. Changes to the
+  executable answer path, corpus, boundary policy, or evaluation material also
+  require `python tools/run_evaluation.py --fail-on-any`.
 - Record durable project decisions in `docs/DECISION_LOG.md`; record unresolved
   matters in `docs/OPEN_QUESTIONS.md` rather than guessing.
 - Keep transient Claude/Codex status, token availability, handoffs, and check-in
@@ -44,4 +46,3 @@ repository. The specification is
 The project owner is the final product authority. Assertions presented as
 Orthodox teaching additionally require the review path defined in the ELF and
 data-governance documents; an AI agent cannot confer that status.
-

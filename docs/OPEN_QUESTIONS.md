@@ -53,4 +53,14 @@ These questions are unresolved on purpose. An answer is recorded in
    separated from question content and analytics?
 4. What visible language communicates review status, limitations, and the
    distinction between general information and pastoral judgment?
-
+5. Which managed identity provider, sign-in methods, deletion path, and recovery
+   policy satisfy the supported platforms without creating a project-owned
+   password liability?
+6. Does guest mode include the full OI Explorer capability, and what requires an
+   account before payment or connector use?
+7. Does an expired entitlement retain indefinite use of the last installed local
+   version, and which services or updates stop?
+8. Which body may verify a clergy or church-worker role, how is the named verifier
+   displayed, and when does the verification expire?
+9. Which connector is piloted first, with what minimum OAuth scope, confirmation
+   rule, token storage, retention, and prompt-injection test?

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -25,11 +26,28 @@ REQUIRED = (
     "docs/DECISION_LOG.md",
     "docs/OPEN_QUESTIONS.md",
     "docs/MODEL_CARD_TEMPLATE.md",
+    "docs/PRODUCT_ACCESS_PLAN.md",
+    "docs/PROTOTYPE.md",
     "schemas/corpus-record.schema.json",
     "schemas/training-example.schema.json",
     "schemas/evaluation-item.schema.json",
     "schemas/model-release.schema.json",
     "config/acceptance_criteria.v0.1.json",
+    "config/prototype_policy.v0.1.json",
+    "evaluation/README.md",
+    "evaluation/development/suite.v0.1.json",
+    "evaluation/development/scoring.v0.1.json",
+    "evaluation/examples/forced-choice-capture.example.json",
+    "prototype/corpus/oi-policy-demo.v0.1.json",
+    "prototype/index.html",
+    "prototype/app.js",
+    "prototype/styles.css",
+    "oi_prototype/engine.py",
+    "oi_prototype/evaluation.py",
+    "research/evidence/provenance.v0.1.json",
+    "tools/run_evaluation.py",
+    "tools/score_forced_choice.py",
+    "tools/serve_prototype.py",
 )
 FORBIDDEN_SUFFIXES = (".gguf", ".onnx", ".safetensors", ".pem", ".key")
 LOCAL_PATH = re.compile(r"(?:[A-Za-z]:\\|/Users/|/home/|/work" r"space/)")
@@ -93,6 +111,105 @@ def check() -> list[str]:
                 else:
                     ids.add(gate_id)
 
+    corpus_path = ROOT / "prototype" / "corpus" / "oi-policy-demo.v0.1.json"
+    corpus = load_json(corpus_path, errors) if corpus_path.exists() else None
+    if isinstance(corpus, dict):
+        if corpus.get("status") != "development_only":
+            errors.append("prototype corpus: status must be development_only")
+        segments: set[str] = set()
+        for record in corpus.get("records", []):
+            if not isinstance(record, dict):
+                errors.append("prototype corpus: record must be an object")
+                continue
+            segment_id = record.get("segment_id")
+            if not isinstance(segment_id, str) or not segment_id:
+                errors.append("prototype corpus: record missing segment_id")
+            elif segment_id in segments:
+                errors.append(f"prototype corpus: duplicate segment_id {segment_id}")
+            else:
+                segments.add(segment_id)
+            text = record.get("display_text")
+            digest = record.get("content_sha256")
+            if not isinstance(text, str) or not text:
+                errors.append(f"prototype corpus: {segment_id} missing display_text")
+            elif hashlib.sha256(text.encode("utf-8")).hexdigest() != digest:
+                errors.append(f"prototype corpus: {segment_id} content hash mismatch")
+            if record.get("source_class") != "product_policy":
+                errors.append(f"prototype corpus: {segment_id} is not product_policy")
+
+    policy_path = ROOT / "config" / "prototype_policy.v0.1.json"
+    policy = load_json(policy_path, errors) if policy_path.exists() else None
+    if isinstance(policy, dict):
+        if policy.get("status") != "development_only":
+            errors.append("prototype policy: status must be development_only")
+        rule_ids: set[str] = set()
+        for rule in policy.get("rules", []):
+            rule_id = rule.get("rule_id") if isinstance(rule, dict) else None
+            if not rule_id:
+                errors.append("prototype policy: rule without rule_id")
+                continue
+            if rule_id in rule_ids:
+                errors.append(f"prototype policy: duplicate rule_id {rule_id}")
+            rule_ids.add(rule_id)
+            for pattern in rule.get("patterns", []):
+                try:
+                    re.compile(pattern)
+                except (TypeError, re.error) as exc:
+                    errors.append(f"prototype policy: {rule_id} invalid pattern: {exc}")
+
+    suite_path = ROOT / "evaluation" / "development" / "suite.v0.1.json"
+    scoring_path = ROOT / "evaluation" / "development" / "scoring.v0.1.json"
+    suite = load_json(suite_path, errors) if suite_path.exists() else None
+    scoring = load_json(scoring_path, errors) if scoring_path.exists() else None
+    if isinstance(suite, dict) and isinstance(scoring, dict):
+        if suite.get("status") != "development_only":
+            errors.append("development suite: status must be development_only")
+        if suite.get("historical_bank_reused") is not False:
+            errors.append("development suite: historical_bank_reused must be false")
+        references = {
+            value.get("scoring_reference_id")
+            for value in scoring.get("references", [])
+            if isinstance(value, dict)
+        }
+        item_ids: set[str] = set()
+        for item in suite.get("items", []):
+            if not isinstance(item, dict):
+                errors.append("development suite: item must be an object")
+                continue
+            item_id = item.get("item_id")
+            if not item_id:
+                errors.append("development suite: item without item_id")
+                continue
+            if item_id in item_ids:
+                errors.append(f"development suite: duplicate item_id {item_id}")
+            item_ids.add(item_id)
+            prompt = item.get("prompt")
+            if not isinstance(prompt, str) or not prompt:
+                errors.append(f"development suite: {item_id} missing prompt")
+            elif hashlib.sha256(prompt.encode("utf-8")).hexdigest() != item.get(
+                "content_sha256"
+            ):
+                errors.append(f"development suite: {item_id} prompt hash mismatch")
+            if item.get("scoring_reference_id") not in references:
+                errors.append(f"development suite: {item_id} unresolved scoring reference")
+
+    provenance_path = ROOT / "research" / "evidence" / "provenance.v0.1.json"
+    provenance = load_json(provenance_path, errors) if provenance_path.exists() else None
+    if isinstance(provenance, dict):
+        artifact_ids: set[str] = set()
+        for artifact in provenance.get("artifacts", []):
+            artifact_id = artifact.get("artifact_id") if isinstance(artifact, dict) else None
+            if not artifact_id:
+                errors.append("research provenance: artifact without artifact_id")
+                continue
+            if artifact_id in artifact_ids:
+                errors.append(f"research provenance: duplicate artifact_id {artifact_id}")
+            artifact_ids.add(artifact_id)
+            if not re.fullmatch(r"[a-f0-9]{64}", str(artifact.get("sha256", ""))):
+                errors.append(f"research provenance: {artifact_id} invalid sha256")
+            if artifact.get("access_class") != "restricted_not_committed":
+                errors.append(f"research provenance: {artifact_id} must remain restricted")
+
     for path in sorted(ROOT.rglob("*")):
         if not path.is_file() or ".git" in path.parts:
             continue
@@ -113,6 +230,11 @@ def check() -> list[str]:
         for marker in ("S0", "S1", "E0", "E1", "R0", "R1", "2 x 2 x 2"):
             if marker not in text:
                 errors.append(f"research specification: missing design marker {marker!r}")
+
+    for relative in ("prototype/index.html", "prototype/app.js", "prototype/styles.css"):
+        path = ROOT / relative
+        if path.exists() and re.search(r"https?://", path.read_text(encoding="utf-8")):
+            errors.append(f"{relative}: prototype static asset contains an external URL")
 
     return errors
 

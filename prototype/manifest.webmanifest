@@ -1,0 +1,9 @@
+{
+  "name": "Orthodox Intelligence Research Prototype",
+  "short_name": "OI Prototype",
+  "description": "Local, evidence-first Orthodox Intelligence research prototype",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#130d18",
+  "theme_color": "#2d173c"
+}

@@ -17,6 +17,7 @@ jobs:
           python-version: "3.12"
       - name: Check repository
         run: python tools/check_repository.py
+      - name: Run development behavioral evaluation
+        run: python tools/run_evaluation.py --fail-on-any
       - name: Run tests
         run: python -m unittest discover -s tests -v
-
