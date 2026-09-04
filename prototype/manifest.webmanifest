@@ -1,7 +1,7 @@
 {
-  "name": "Orthodox Intelligence Research Prototype",
-  "short_name": "OI Prototype",
-  "description": "Local, evidence-first Orthodox Intelligence research prototype",
+  "name": "Uvaha Research Prototype",
+  "short_name": "Uvaha",
+  "description": "Local-first Uvaha prototype powered by Sofiia v0.1 and Plithos evidence",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#130d18",
