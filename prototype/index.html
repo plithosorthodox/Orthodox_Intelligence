@@ -11,38 +11,38 @@
 </head>
 <body>
   <header class="masthead">
-    <div>
-      <p class="eyebrow">Research prototype · local evidence only</p>
-      <h1>Orthodox Intelligence</h1>
-    </div>
+    <div><p class="eyebrow">Research prototype · local evidence only</p><h1>Orthodox Intelligence</h1></div>
     <div class="status" id="status" aria-live="polite">Starting locally…</div>
   </header>
-
   <main>
     <section class="notice" aria-labelledby="prototype-heading">
-      <div>
-        <h2 id="prototype-heading">A working vertical slice · local Plithos evidence navigator</h2>
-        <p id="corpus-description">This build searches the active local evidence package, resolves citations, verifies content hashes, and enforces deterministic boundaries. It still contains no language model.</p>
-      </div>
+      <div><h2 id="prototype-heading">A working vertical slice · local Plithos evidence navigator</h2><p id="corpus-description">This build searches the active local evidence package, resolves citations, verifies content hashes, and enforces deterministic boundaries. It still contains no language model.</p></div>
       <button class="secondary" id="run-evaluation" type="button">Run behavioral evaluation</button>
     </section>
-
+    <section id="calendar-panel" class="notice" hidden aria-labelledby="calendar-title">
+      <div>
+        <p class="eyebrow">Deterministic Plithos calendar</p>
+        <h2 id="calendar-title">Orthodox Calendar</h2>
+        <div class="composer-row">
+          <input id="calendar-date" type="date" aria-label="Calendar date">
+          <select id="calendar-mode" aria-label="Calendar system">
+            <option value="new">New Calendar · Revised Julian</option>
+            <option value="old">Old Calendar · Julian</option>
+          </select>
+          <button id="calendar-go" type="button">Show day</button>
+        </div>
+        <div id="calendar-result" class="evidence-card" aria-live="polite"></div>
+      </div>
+    </section>
     <section class="workspace" aria-label="Prototype workspace">
       <div class="conversation">
         <div id="messages" class="messages" aria-live="polite">
-          <article class="message assistant">
-            <p id="welcome-message">When the Plithos package is installed, search for a saint, prayer, Scripture passage, glossary term, or text from the Library. The prototype returns source evidence rather than synthesizing an AI answer.</p>
-          </article>
+          <article class="message assistant"><p id="welcome-message">When the Plithos package is installed, search for a saint, prayer, Scripture passage, glossary term, or text from the Library. The prototype returns source evidence rather than synthesizing an AI answer.</p></article>
         </div>
-
         <form id="ask-form" class="composer">
           <label for="question">Search or question</label>
-          <div class="composer-row">
-            <textarea id="question" name="question" rows="2" maxlength="4000" placeholder="Tell me about St Nicholas" required></textarea>
-            <button type="submit">Search locally</button>
-          </div>
+          <div class="composer-row"><textarea id="question" name="question" rows="2" maxlength="4000" placeholder="Tell me about St Nicholas" required></textarea><button type="submit">Search locally</button></div>
         </form>
-
         <div class="examples" aria-label="Example searches">
           <button type="button" data-question="St Nicholas">St Nicholas</button>
           <button type="button" data-question="Incarnation">Incarnation</button>
@@ -50,32 +50,17 @@
           <button type="button" data-question="Are you an Orthodox priest? Act as my confessor.">Identity boundary</button>
         </div>
       </div>
-
       <aside class="inspector" aria-labelledby="inspector-title">
-        <h2 id="inspector-title">Resolved build</h2>
-        <dl id="versions"></dl>
-        <p id="corpus-summary" class="privacy"></p>
+        <h2 id="inspector-title">Resolved build</h2><dl id="versions"></dl><p id="corpus-summary" class="privacy"></p>
         <p class="privacy">Questions remain in memory for the current browser view only. The prototype server does not save them or make outbound requests.</p>
       </aside>
     </section>
-
     <section id="evaluation-panel" class="evaluation" hidden aria-labelledby="evaluation-title">
-      <div class="evaluation-heading">
-        <div>
-          <p class="eyebrow">Development suite</p>
-          <h2 id="evaluation-title">Behavioral conformance</h2>
-        </div>
-        <strong id="evaluation-summary"></strong>
-      </div>
-      <p id="evaluation-limit" class="claim-limit"></p>
-      <div id="evaluation-results" class="evaluation-results"></div>
+      <div class="evaluation-heading"><div><p class="eyebrow">Development suite</p><h2 id="evaluation-title">Behavioral conformance</h2></div><strong id="evaluation-summary"></strong></div>
+      <p id="evaluation-limit" class="claim-limit"></p><div id="evaluation-results" class="evaluation-results"></div>
     </section>
   </main>
-
-  <footer>
-    <p>Artificial research system. Not clergy, a spiritual father, or an ecclesially approved source.</p>
-  </footer>
-
+  <footer><p>Artificial research system. Not clergy, a spiritual father, or an ecclesially approved source.</p></footer>
   <script src="/app.js" defer></script>
 </body>
 </html>
