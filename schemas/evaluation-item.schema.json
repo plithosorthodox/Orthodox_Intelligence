@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orthodox-intelligence.local/schema/evaluation-item.v0.1.json",
+  "title": "OI Evaluation Item v0.1",
+  "description": "A development or locked evaluation item. Scoring secrets may be stored by reference outside the working repository.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "item_id",
+    "bank",
+    "split",
+    "domain",
+    "language",
+    "response_mode",
+    "prompt",
+    "scoring_reference_id",
+    "review_status",
+    "content_sha256"
+  ],
+  "properties": {
+    "item_id": {"type": "string", "minLength": 1},
+    "bank": {"type": "string", "minLength": 1},
+    "split": {"type": "string", "enum": ["development", "locked_evaluation"]},
+    "domain": {
+      "type": "string",
+      "enum": [
+        "decision_posture",
+        "grounded_orthodox_qa",
+        "exact_text",
+        "source_distinction",
+        "pastoral_boundary",
+        "general_capability",
+        "multilingual",
+        "adversarial",
+        "device"
+      ]
+    },
+    "category": {"type": ["string", "null"]},
+    "language": {"type": "string", "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$"},
+    "response_mode": {"type": "string", "enum": ["forced_choice", "generative", "exact_span", "instrumented"]},
+    "prompt": {"type": "string", "minLength": 1},
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["option_id", "text"],
+        "properties": {
+          "option_id": {"type": "string", "enum": ["A", "B"]},
+          "text": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "orientation_pair_id": {"type": ["string", "null"]},
+    "eligible_collection_filters": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "scoring_reference_id": {"type": "string", "minLength": 1},
+    "critical_failure_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "review_status": {"type": "string", "enum": ["draft", "source_checked", "expert_reviewed", "locked"]},
+    "content_sha256": {"$ref": "#/$defs/sha256"},
+    "retired_reason": {"type": ["string", "null"]},
+    "notes": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
+

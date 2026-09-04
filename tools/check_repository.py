@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Dependency-free structural checks for the OI research repository."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+REQUIRED = (
+    "README.md",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "docs/OI_RESEARCH_AND_TRAINING_SPECIFICATION_v0.1.md",
+    "docs/ARCHITECTURE.md",
+    "docs/EVALUATION_PROTOCOL.md",
+    "docs/DATA_AND_PROVENANCE.md",
+    "docs/ELF_REVIEW_PROTOCOL.md",
+    "docs/THREAT_MODEL.md",
+    "docs/ROADMAP.md",
+    "docs/DECISION_LOG.md",
+    "docs/OPEN_QUESTIONS.md",
+    "docs/MODEL_CARD_TEMPLATE.md",
+    "schemas/corpus-record.schema.json",
+    "schemas/training-example.schema.json",
+    "schemas/evaluation-item.schema.json",
+    "schemas/model-release.schema.json",
+    "config/acceptance_criteria.v0.1.json",
+)
+FORBIDDEN_SUFFIXES = (".gguf", ".onnx", ".safetensors", ".pem", ".key")
+LOCAL_PATH = re.compile(r"(?:[A-Za-z]:\\|/Users/|/home/|/work" r"space/)")
+
+
+def load_json(path: Path, errors: list[str]):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        errors.append(f"{path.relative_to(ROOT)}: invalid JSON: {exc}")
+        return None
+
+
+def check() -> list[str]:
+    errors: list[str] = []
+
+    for relative in REQUIRED:
+        if not (ROOT / relative).is_file():
+            errors.append(f"missing required file: {relative}")
+
+    schema_ids: dict[str, str] = {}
+    for path in sorted((ROOT / "schemas").glob("*.json")):
+        data = load_json(path, errors)
+        if not isinstance(data, dict):
+            continue
+        for key in ("$schema", "$id", "title", "type"):
+            if not data.get(key):
+                errors.append(f"{path.relative_to(ROOT)}: missing {key}")
+        schema_id = data.get("$id")
+        if schema_id in schema_ids:
+            errors.append(
+                f"{path.relative_to(ROOT)}: duplicate $id also used by "
+                f"{schema_ids[schema_id]}"
+            )
+        elif isinstance(schema_id, str):
+            schema_ids[schema_id] = str(path.relative_to(ROOT))
+        if data.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+            errors.append(f"{path.relative_to(ROOT)}: schema draft must be 2020-12")
+
+    criteria_path = ROOT / "config" / "acceptance_criteria.v0.1.json"
+    criteria = load_json(criteria_path, errors) if criteria_path.exists() else None
+    if isinstance(criteria, dict):
+        if criteria.get("spec_version") != "0.1":
+            errors.append("acceptance criteria: spec_version must be 0.1")
+        if criteria.get("status") != "provisional":
+            errors.append("acceptance criteria: v0.1 thresholds must remain provisional")
+        if criteria.get("ratification_required") is not True:
+            errors.append("acceptance criteria: ratification_required must be true")
+        ids: set[str] = set()
+        for group in ("critical_gates", "quantitative_gates"):
+            gates = criteria.get(group)
+            if not isinstance(gates, list) or not gates:
+                errors.append(f"acceptance criteria: {group} must be a non-empty list")
+                continue
+            for gate in gates:
+                gate_id = gate.get("id") if isinstance(gate, dict) else None
+                if not gate_id:
+                    errors.append(f"acceptance criteria: {group} contains a gate without id")
+                elif gate_id in ids:
+                    errors.append(f"acceptance criteria: duplicate gate id {gate_id}")
+                else:
+                    ids.add(gate_id)
+
+    for path in sorted(ROOT.rglob("*")):
+        if not path.is_file() or ".git" in path.parts:
+            continue
+        if path.suffix.lower() in FORBIDDEN_SUFFIXES:
+            errors.append(f"forbidden artifact committed: {path.relative_to(ROOT)}")
+        if path.suffix.lower() in {".md", ".py", ".json", ".yml", ".yaml"}:
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeError as exc:
+                errors.append(f"{path.relative_to(ROOT)}: not valid UTF-8: {exc}")
+                continue
+            if path.resolve() != Path(__file__).resolve() and LOCAL_PATH.search(text):
+                errors.append(f"{path.relative_to(ROOT)}: contains a machine-local path")
+
+    spec = ROOT / "docs" / "OI_RESEARCH_AND_TRAINING_SPECIFICATION_v0.1.md"
+    if spec.exists():
+        text = spec.read_text(encoding="utf-8")
+        for marker in ("S0", "S1", "E0", "E1", "R0", "R1", "2 x 2 x 2"):
+            if marker not in text:
+                errors.append(f"research specification: missing design marker {marker!r}")
+
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--json", action="store_true", help="emit machine-readable output")
+    args = parser.parse_args()
+    errors = check()
+    if args.json:
+        print(json.dumps({"ok": not errors, "errors": errors}, indent=2))
+    elif errors:
+        print(f"{len(errors)} repository problem(s):")
+        for error in errors:
+            print(f"  {error}")
+    else:
+        print("OI repository structure and policy checks passed")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

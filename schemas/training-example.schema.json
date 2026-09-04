@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orthodox-intelligence.local/schema/training-example.v0.1.json",
+  "title": "OI Training Example v0.1",
+  "description": "An auditable supervised or preference-training example; locked evaluation data is forbidden.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "example_id",
+    "dataset_split",
+    "task_type",
+    "language",
+    "input",
+    "preferred_output",
+    "evidence_segment_ids",
+    "origin",
+    "review_status",
+    "content_sha256"
+  ],
+  "properties": {
+    "example_id": {"type": "string", "minLength": 1},
+    "dataset_split": {"type": "string", "enum": ["training", "development"]},
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "grounded_answer",
+        "decision_posture",
+        "citation",
+        "exact_text_boundary",
+        "identity_boundary",
+        "pastoral_boundary",
+        "correction",
+        "multilingual",
+        "adversarial"
+      ]
+    },
+    "language": {"type": "string", "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$"},
+    "input": {"type": "string", "minLength": 1},
+    "preferred_output": {"type": "string", "minLength": 1},
+    "rejected_outputs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "rejection_reasons": {"type": "array", "items": {"type": "string"}},
+    "evidence_segment_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "elf_proposition_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {"type": "string", "enum": ["human_authored", "source_derived", "synthetic", "adversarially_generated"]},
+        "generator_model": {"type": ["string", "null"]},
+        "generator_prompt_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "source_artifact_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "review_status": {
+      "type": "string",
+      "enum": ["unreviewed", "source_checked", "language_reviewed", "ecclesially_reviewed", "training_approved"]
+    },
+    "contamination_screen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact_checked", "near_duplicate_checked"],
+      "properties": {
+        "exact_checked": {"type": "boolean"},
+        "near_duplicate_checked": {"type": "boolean"},
+        "tool_version": {"type": ["string", "null"]},
+        "locked_bank_manifest_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
+    "content_sha256": {"$ref": "#/$defs/sha256"},
+    "notes": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
+

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orthodox-intelligence.local/schema/corpus-record.v0.1.json",
+  "title": "OI Corpus Record v0.1",
+  "description": "A source record or retrievable segment in an immutable OI corpus export.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_id",
+    "segment_id",
+    "collection",
+    "source_class",
+    "language",
+    "display_text",
+    "citation_label",
+    "content_sha256",
+    "rights",
+    "lineage",
+    "review_status"
+  ],
+  "properties": {
+    "record_id": {"type": "string", "minLength": 1},
+    "segment_id": {"type": "string", "minLength": 1},
+    "collection": {"type": "string", "minLength": 1},
+    "source_class": {
+      "type": "string",
+      "enum": [
+        "scripture",
+        "liturgical_text",
+        "council_or_canonical",
+        "patristic_work",
+        "hagiography_or_synaxarion",
+        "calendar_or_jurisdiction",
+        "historical_or_scholarly",
+        "plithos_editorial",
+        "glossary_or_interface",
+        "product_policy"
+      ]
+    },
+    "language": {"type": "string", "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$"},
+    "script": {"type": ["string", "null"]},
+    "title": {"type": ["string", "null"]},
+    "author": {"type": ["string", "null"]},
+    "translator": {"type": ["string", "null"]},
+    "edition": {"type": ["string", "null"]},
+    "publication_year": {"type": ["integer", "string", "null"]},
+    "source_locator": {"type": ["string", "null"]},
+    "citation_label": {"type": "string", "minLength": 1},
+    "display_text": {"type": "string", "minLength": 1},
+    "search_text": {"type": ["string", "null"]},
+    "exact_text": {"type": "boolean", "default": false},
+    "content_sha256": {"$ref": "#/$defs/sha256"},
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "basis"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["public_domain", "licensed", "permission", "research_only", "unknown"]
+        },
+        "basis": {"type": "string", "minLength": 1},
+        "license_id": {"type": ["string", "null"]}
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plithos_revision", "export_id", "transform_version"],
+      "properties": {
+        "plithos_revision": {"type": "string", "minLength": 1},
+        "export_id": {"type": "string", "minLength": 1},
+        "source_path": {"type": ["string", "null"]},
+        "transform_version": {"type": "string", "minLength": 1},
+        "parent_content_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
+    "review_status": {
+      "type": "string",
+      "enum": ["unreviewed", "source_checked", "language_reviewed", "ecclesially_reviewed", "release_approved"]
+    },
+    "authority_scope": {"type": ["string", "null"]},
+    "qualifications": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "metadata": {"type": "object"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
+
