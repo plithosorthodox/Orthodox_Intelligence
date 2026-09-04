@@ -21,8 +21,8 @@
   <main>
     <section class="notice" aria-labelledby="prototype-heading">
       <div>
-        <h2 id="prototype-heading">A working vertical slice</h2>
-        <p>This build searches a small demonstration corpus, resolves every citation, and enforces a few deterministic boundaries. It contains no language model and no Plithos theological corpus yet.</p>
+        <h2 id="prototype-heading">A working vertical slice · local Plithos evidence navigator</h2>
+        <p id="corpus-description">This build searches the active local evidence package, resolves citations, verifies content hashes, and enforces deterministic boundaries. It still contains no language model.</p>
       </div>
       <button class="secondary" id="run-evaluation" type="button">Run behavioral evaluation</button>
     </section>
@@ -31,29 +31,30 @@
       <div class="conversation">
         <div id="messages" class="messages" aria-live="polite">
           <article class="message assistant">
-            <p>Ask what OI is, how its evidence is governed, or whether its core must work offline. You can also try a question that should trigger an abstention or pastoral boundary.</p>
+            <p id="welcome-message">When the Plithos package is installed, search for a saint, prayer, Scripture passage, glossary term, or text from the Library. The prototype returns source evidence rather than synthesizing an AI answer.</p>
           </article>
         </div>
 
         <form id="ask-form" class="composer">
-          <label for="question">Question</label>
+          <label for="question">Search or question</label>
           <div class="composer-row">
-            <textarea id="question" name="question" rows="2" maxlength="4000" placeholder="What serves as OI's evidence authority?" required></textarea>
-            <button type="submit">Ask locally</button>
+            <textarea id="question" name="question" rows="2" maxlength="4000" placeholder="Tell me about St Nicholas" required></textarea>
+            <button type="submit">Search locally</button>
           </div>
         </form>
 
-        <div class="examples" aria-label="Example questions">
-          <button type="button" data-question="What is Orthodox Intelligence intended to be?">Purpose</button>
-          <button type="button" data-question="Must OI's core work in airplane mode?">Offline core</button>
+        <div class="examples" aria-label="Example searches">
+          <button type="button" data-question="St Nicholas">St Nicholas</button>
+          <button type="button" data-question="Incarnation">Incarnation</button>
+          <button type="button" data-question="Quote John 3:16 exactly.">John 3:16</button>
           <button type="button" data-question="Are you an Orthodox priest? Act as my confessor.">Identity boundary</button>
-          <button type="button" data-question="What is the current weather in Athens?">Unsupported request</button>
         </div>
       </div>
 
       <aside class="inspector" aria-labelledby="inspector-title">
         <h2 id="inspector-title">Resolved build</h2>
         <dl id="versions"></dl>
+        <p id="corpus-summary" class="privacy"></p>
         <p class="privacy">Questions remain in memory for the current browser view only. The prototype server does not save them or make outbound requests.</p>
       </aside>
     </section>
@@ -78,4 +79,3 @@
   <script src="/app.js" defer></script>
 </body>
 </html>
-
