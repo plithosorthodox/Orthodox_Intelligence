@@ -149,11 +149,22 @@ class AssetResolutionTests(unittest.TestCase):
         resolved = builder.resolve_llama_asset(opener=self.opener([self.EMPTY, self.FULL]))
         self.assertEqual("b9000", resolved["release_tag"])
 
-    def test_drafts_and_prereleases_are_not_used(self):
+    def test_a_draft_is_not_used(self):
         draft = dict(self.FULL, tag_name="b9001", draft=True)
-        pre = dict(self.FULL, tag_name="b9002", prerelease=True)
-        resolved = builder.resolve_llama_asset(opener=self.opener([draft, pre, self.FULL]))
+        resolved = builder.resolve_llama_asset(opener=self.opener([draft, self.FULL]))
         self.assertEqual("b9000", resolved["release_tag"])
+
+    def test_a_prerelease_is_used_because_that_is_what_llama_cpp_publishes(self):
+        """Every numbered llama.cpp build is flagged a prerelease.
+
+        Skipping them emptied the index and reported that no Windows build
+        existed, with the wanted archive visible in the failure's own listing.
+        """
+        pre = dict(self.FULL, tag_name="b10819", prerelease=True)
+        resolved = builder.resolve_llama_asset(opener=self.opener([pre]))
+        self.assertEqual("b10819", resolved["release_tag"])
+        self.assertEqual("llama-b10819-bin-win-cpu-x64.zip".replace("10819", "9000"),
+                         resolved["asset"])
 
     def test_nothing_anywhere_reports_what_was_actually_published(self):
         with self.assertRaises(builder.BuildError) as caught:
@@ -168,6 +179,52 @@ class AssetResolutionTests(unittest.TestCase):
     def test_an_empty_index_is_reported(self):
         with self.assertRaises(builder.BuildError):
             builder.resolve_llama_asset(opener=self.opener([]))
+
+
+class RealReleaseTests(unittest.TestCase):
+    """The asset list llama.cpp actually published, as a regression.
+
+    Written from a real failing run rather than from what the naming scheme
+    was assumed to be: b10819 ships a Windows build for CPU, CUDA in two
+    versions, ROCm, SYCL, Vulkan, OpenVINO and Adreno OpenCL, plus a CPU build
+    for arm64 and a CUDA runtime archive that begins with a different word
+    entirely. Exactly one of them is the plain x64 CPU build.
+    """
+
+    ASSETS = [
+        "cudart-llama-bin-win-cuda-12.4-x64.zip",
+        "cudart-llama-bin-win-cuda-13.3-x64.zip",
+        "cudart-llama-bin-win-cuda-13.4-arm64.zip",
+        "llama-b10819-bin-android-arm64.tar.gz",
+        "llama-b10819-bin-macos-x64.tar.gz",
+        "llama-b10819-bin-ubuntu-x64.tar.gz",
+        "llama-b10819-bin-ubuntu-vulkan-x64.tar.gz",
+        "llama-b10819-bin-win-cpu-arm64.zip",
+        "llama-b10819-bin-win-cpu-x64.zip",
+        "llama-b10819-bin-win-cuda-12.4-x64.zip",
+        "llama-b10819-bin-win-cuda-13.3-x64.zip",
+        "llama-b10819-bin-win-opencl-adreno-arm64.zip",
+        "llama-b10819-bin-win-openvino-2026.3.1-x64.zip",
+        "llama-b10819-bin-win-rocm-10.0-x64.zip",
+        "llama-b10819-bin-win-sycl-x64.zip",
+        "llama-b10819-bin-win-vulkan-x64.zip",
+        "llama-b10819-ui.tar.gz",
+        "llama-b10819-xcframework.zip",
+    ]
+
+    def test_the_published_release_resolves_to_the_x64_cpu_build(self):
+        release = {
+            "tag_name": "b10819",
+            "prerelease": True,
+            "assets": [
+                {"name": name, "browser_download_url": f"https://example.invalid/{name}"}
+                for name in self.ASSETS
+            ],
+        }
+        opener = lambda _url, timeout=None: FakeResponse(json.dumps([release]).encode())
+        resolved = builder.resolve_llama_asset(opener=opener)
+        self.assertEqual("b10819", resolved["release_tag"])
+        self.assertEqual("llama-b10819-bin-win-cpu-x64.zip", resolved["asset"])
 
 
 class LauncherTests(unittest.TestCase):

@@ -91,7 +91,10 @@ def verify(path: Path, expected: str, name: str, *, record: bool) -> str:
 
 
 LLAMA_RELEASES = "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30"
-LLAMA_ACCELERATORS = ("vulkan", "cuda", "hip", "sycl", "cann", "musa", "opencl", "arm64")
+LLAMA_ACCELERATORS = (
+    "vulkan", "cuda", "hip", "rocm", "sycl", "cann", "musa", "openvino",
+    "opencl", "arm64",
+)
 
 
 def _windows_cpu_asset(release: dict) -> dict | None:
@@ -141,7 +144,11 @@ def resolve_llama_asset(*, opener=urlopen) -> dict:
     if not isinstance(releases, list) or not releases:
         raise BuildError("the llama.cpp release index was empty")
     for release in releases:
-        if release.get("draft") or release.get("prerelease"):
+        # Drafts only. llama.cpp marks its ordinary numbered builds as
+        # prereleases - every one of them - so skipping prereleases threw away
+        # the whole index and reported that no Windows build existed while
+        # llama-b10819-bin-win-cpu-x64.zip sat in the list the failure printed.
+        if release.get("draft"):
             continue
         asset = _windows_cpu_asset(release)
         if asset is None:
