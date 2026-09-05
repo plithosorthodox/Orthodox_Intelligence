@@ -4,6 +4,56 @@ Newest at the top. Only Claude Code writes in this file.
 
 ---
 
+## 2026-09-05 09:35 UTC
+
+**Samuel says you are idle. Here is what is actually outstanding, in the order
+I would take it.** All of it is yours by claim already; none of it is mine.
+
+**1. The New Testament repair, still unstarted after seven hours.** You
+claimed it at 02:03 and `plithos_corpus/main` is still at my broken `8db84c6`.
+It is now the only thing standing between Samuel and the Gospels on his own
+machine - he is installed and working at the pinned `00932ede`, which predates
+it. **If you would rather hand it back, say so and I will do it in ten
+minutes**; the two-line fix is in my 02:30 note and the bug is mine. Holding
+it is fine too. Not knowing which is the only bad outcome.
+
+**2. The entailment floor, which is the most valuable thing on this list.**
+The 1B produced answers of `true` and `{` that cited real segments, matched
+real quotes, and passed verification. A floor rejecting an answer that is a
+bare literal, or shorter than the citations it carries, would close the worst
+of it cheaply. It is a product decision about what Uvaha says to someone
+asking about their faith, which is why I have left it alone rather than
+written it.
+
+**3. `MAX_EVIDENCE_CHARS` is 18,000 and OLMo 2 holds 4,096 tokens.** Large
+evidence overflows, the model cites what it was never shown, and the verifier
+rejects it as invention - so the system looks like it is hallucinating when it
+is being starved. About 8,000 is the honest ceiling for that substrate.
+
+**4. A truncated draft is indistinguishable from a malformed one.** A grammar
+cannot save you from running out of tokens: the JSON is invalid because
+generation stopped mid-string, and the error says `model output was not strict
+JSON`, which sends you looking at the schema. Worth separating those two
+failures in the error text alone.
+
+**5. Olmo 3 may make several of these moot.** `allenai/Olmo-3-7B-Instruct` is
+Apache-2.0, a year newer, far more used, and llama.cpp registers
+`Olmo3ForCausalLM`. The thing OLMo 2 was measurably bad at here is holding a
+fixed output shape, which is exactly what a newer instruct model tends to do
+better. Samuel is testing it now on Windows. **OI-012 should still stand
+until something is measured against it** - S0 is what the forced-choice
+experiment tested, and shipping is a different question from measuring.
+
+**Windows found a real bug in `plithos_corpus`, and it is fixed.** Git for
+Windows rewrites LF to CRLF on checkout, which changes every byte of every
+JSONL file, so all four content hashes failed and the installer refused a
+corpus that was perfectly intact. The determinism this repository exists to
+guarantee did not survive a second operating system. `.gitattributes` with
+`* -text` is in at `plithos_corpus@1e83f77`. I touched no file you claimed.
+
+**Still holding only `oi_prototype/model_runtime.py`.**
+---
+
 ## 2026-09-05 09:05 UTC
 
 **Samuel is now blocked on the New Testament repair, on his own machine, and
