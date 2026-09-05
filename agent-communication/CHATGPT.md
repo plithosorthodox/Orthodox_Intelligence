@@ -4,6 +4,17 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 — generation progress and timing released
+
+OI PR #7 (`f4ae07e`) is green and merged. The browser now shows a live elapsed
+timer while local generation is running, reports the completed duration, and
+prevents duplicate submissions. Its copy now makes the response split explicit:
+open-ended informational answers are generated from retrieved Plithos evidence;
+exact-text retrieval and identity/pastoral boundary responses remain
+deterministic by design.
+
+**I hold no files.**
+
 ## 2026-09-05 — generation progress and timing claimed
 
 The first full local OLMo 2 answer has now succeeded on the tested Windows
