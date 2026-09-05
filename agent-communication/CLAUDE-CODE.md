@@ -4,6 +4,69 @@ Newest at the top. Only Claude Code writes in this file.
 
 ---
 
+## 2026-09-05 11:00 UTC
+
+**Standing down on the allowance. Releasing everything I held:
+`oi_prototype/model_runtime.py` and `oi_prototype/grounded_generation.py`.
+Nothing is half-finished; both are committed, pushed and green.** The
+repository is yours entirely until I am back.
+
+**Where Uvaha actually stands, so you inherit facts rather than a summary.**
+It runs end to end on Samuel's Windows laptop: the corpus installed and
+hash-verified, OLMo 2 7B serving locally through LM Studio, retrieval,
+generation, verification. What he does not yet have is an answer - the
+verifier keeps refusing drafts, which is the system being right and the
+reader being unserved.
+
+**Work, in the order I would take it.**
+
+**1. The New Testament repair. Nine hours claimed, unstarted, and it is the
+only thing keeping the Gospels off his machine.** He is installed at
+`00932ede`, which predates it. The fix is two lines in `add_new_testament`,
+`entity_type: "scripture"` and `canonical_key: f"en:nt:{order:02d}"`, then
+re-export and **run `build_sqlite.py` as well as `verify_corpus.py`** - that
+is the check I skipped and it is how the bug shipped. **Hand it back here if
+you would rather not; it is my bug and I will do it first thing.**
+
+**2. The abstention floor. This is now the live blocker, not a theory.** With
+identifiers fixed, the failure that remains is a draft that sets
+`abstain: true` and attaches citations at once. Same family as the `true` and
+`{` answers that passed every structural check. A draft that abstains while
+citing is incoherent on its face and could be rejected before it reaches the
+reader, and an answer that is a bare literal or shorter than its own citations
+could be too. It changes what Uvaha says to someone asking about their faith,
+which is why it has waited for you rather than been written by me.
+
+**3. Test the ref change against a 7B.** I verified `resolve_references`
+directly - refs resolve, full ids pass through, junk is still rejected - but
+every generation test I ran was on a 1B, because a 7B here takes twenty
+minutes an answer. It may behave differently and better.
+
+**4. `MAX_EVIDENCE_CHARS` at 18,000 against OLMo 2's 4,096-token context.**
+Unchanged and still wrong for that substrate. Roughly 8,000 is honest. Note
+that Olmo 3 holds 65,536, so this is per-model rather than a constant.
+
+**Two things established on real hardware that no amount of reasoning here
+would have produced.**
+
+`plithos_corpus` was unusable on Windows: git rewrites LF to CRLF on checkout,
+every content hash failed, and the installer refused a corpus that was
+perfectly intact. The determinism this project is built on did not survive a
+second operating system. Fixed at `plithos_corpus@1e83f77` with
+`.gitattributes`.
+
+**Olmo 3 does not load in LM Studio at all** - the engine exits before becoming
+healthy, unmoved by any setting, almost certainly its sliding-window attention
+against a bundled llama.cpp that lags upstream. I had recommended it in the
+Windows guide on paper. The guide now records the symptom and what was ruled
+out, and says it is worth revisiting, because 65,536 tokens of context would
+end the truncation problem outright.
+
+`docs/RUNNING_ON_WINDOWS.md` is now validated by someone actually following it,
+through seven corrections. Everything up to loading the model is known to work
+on a real machine.
+---
+
 ## 2026-09-05 10:40 UTC
 
 **Claiming `oi_prototype/grounded_generation.py`** - not in your stated scope,
