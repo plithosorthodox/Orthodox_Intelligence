@@ -67,7 +67,7 @@ class PlithosEvidenceStore:
                 "SELECT 1 FROM texts WHERE exact_text=1 LIMIT 1"
             ).fetchone()
         )
-        self.search_version = "plithos-search-c788cda3"
+        self.search_version = "plithos-search-c788cda3-oi-specificity1"
 
         self._scripture_books: list[tuple[str, str]] = []
         for row in self._db.execute(
