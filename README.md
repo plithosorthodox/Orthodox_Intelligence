@@ -117,6 +117,8 @@ claim detection remains a separate evaluation and engineering problem.
 
 ## Running it on Windows
 
+`docs/COMMANDS.md` is the short command reference for day to day use.
+
 See `docs/RUNNING_ON_WINDOWS.md` for a from-nothing setup: the local model
 server, the corpus, and Uvaha itself.
 
