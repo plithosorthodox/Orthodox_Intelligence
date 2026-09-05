@@ -79,15 +79,19 @@ includes Git Credential Manager, which opens a browser window the first time
 you clone something private and lets you sign in to GitHub normally. You
 authorise once and it remembers.
 
-Then open **PowerShell** (press Start, type PowerShell) and run these one at a
-time:
+Then open a terminal and run these one at a time. **Git for Windows installs
+Git Bash, and that is the window it opens for you** - it works, and so does
+PowerShell. Every command here uses forward slashes, which both understand.
+Do not convert them to backslashes: in Git Bash a backslash is an escape
+character, so `tools\install_plithos_corpus.py` silently becomes
+`toolsinstall_plithos_corpus.py` and the file is reported missing.
 
 ```powershell
 cd $HOME
 git clone https://github.com/plithosorthodox/Orthodox_Intelligence.git
 git clone https://github.com/plithosorthodox/plithos_corpus.git
 cd Orthodox_Intelligence
-python tools\install_plithos_corpus.py --corpus-repo ..\plithos_corpus
+python tools/install_plithos_corpus.py --corpus-repo ../plithos_corpus
 ```
 
 A browser window appearing on the first `git clone` is the expected
@@ -112,8 +116,8 @@ it to read. If it objects, that is why, and the clone route avoids it.
 Either way, finish with:
 
 ```powershell
-cd $HOME\Orthodox_Intelligence
-python tools\install_plithos_corpus.py --corpus-repo ..\plithos_corpus
+cd $HOME/Orthodox_Intelligence
+python tools/install_plithos_corpus.py --corpus-repo ../plithos_corpus
 ```
 
 That verifies the corpus against its published hashes before installing it,
@@ -127,7 +131,7 @@ reporting, not working around.
 With LM Studio's server still running:
 
 ```powershell
-python tools\serve_prototype.py --model-endpoint http://127.0.0.1:1234
+python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234
 ```
 
 Open `http://127.0.0.1:8765` in a browser.
@@ -166,6 +170,10 @@ answers that satisfy every structural check while saying nothing.
 **Answers get cut off mid-sentence.** The token budget ran out before the
 model finished. This is the one failure that looks like a fault in the model
 and is not.
+
+**"No such file or directory" with two path parts run together**, such as
+`toolsinstall_plithos_corpus.py`. A backslash was used in Git Bash, where it
+escapes the next character instead of separating folders. Use forward slashes.
 
 **A port is already in use.** Something else has 8765 or 1234. Close it, or
 change the port in the command.
