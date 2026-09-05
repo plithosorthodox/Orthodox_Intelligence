@@ -12,7 +12,7 @@ from .model_runtime import GenerationRequest, GenerationResult
 
 SOFIIA_DISPLAY_NAME = "Sofiia v0.1"
 GENERATION_CONTRACT = "sofiia-grounded-json-v0.1"
-MAX_EVIDENCE_CHARS = 18_000
+MAX_EVIDENCE_CHARS = 8_000
 MAX_EVIDENCE_RECORDS = 8
 MAX_ANSWER_WORDS = 120
 MAX_REJECTED_OUTPUT_CHARS = 1_200
@@ -67,12 +67,12 @@ def _pack_evidence(evidence: tuple[Evidence, ...]) -> tuple[Evidence, ...]:
     used = 0
     for item in evidence[:MAX_EVIDENCE_RECORDS]:
         cost = len(item.display_text) + len(item.title) + len(item.citation_label) + 200
-        if selected and used + cost > MAX_EVIDENCE_CHARS:
+        if cost > MAX_EVIDENCE_CHARS:
+            continue
+        if used + cost > MAX_EVIDENCE_CHARS:
             break
         selected.append(item)
         used += cost
-    if not selected and evidence:
-        selected.append(evidence[0])
     return tuple(selected)
 
 
@@ -178,6 +178,19 @@ def parse_draft(text: str) -> GroundedDraft:
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
+        stripped = text.rstrip()
+        incomplete_at_end = (
+            exc.msg.startswith("Unterminated string")
+            or (
+                bool(stripped)
+                and stripped[0] in "{["
+                and exc.pos >= len(stripped) - 1
+            )
+        )
+        if incomplete_at_end:
+            raise GroundedGenerationError(
+                "model output appears truncated before completing strict JSON"
+            ) from exc
         raise GroundedGenerationError("model output was not strict JSON") from exc
     if not isinstance(payload, dict):
         raise GroundedGenerationError("model output JSON must be an object")

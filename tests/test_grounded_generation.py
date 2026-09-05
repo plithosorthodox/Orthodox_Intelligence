@@ -99,6 +99,36 @@ class GroundingContractTests(unittest.TestCase):
         payload = json.loads(request.user_prompt)
         self.assertEqual("text:nicholas", payload["EVIDENCE"][0]["segment_id"])
 
+    def test_evidence_packing_fits_olmo2_context_budget(self):
+        first = evidence()
+        second = Evidence(
+            **{
+                **first.__dict__,
+                "record_id": "saint:second",
+                "segment_id": "text:second",
+                "display_text": "x" * 7900,
+            }
+        )
+        request, selected = build_generation_request("Who was Nicholas?", (first, second))
+        self.assertEqual((first,), selected)
+        payload = json.loads(request.user_prompt)
+        packed = payload["EVIDENCE"]
+        packed_cost = sum(
+            len(item["text"])
+            + len(item["title"])
+            + len(item["citation_label"])
+            + 200
+            for item in packed
+        )
+        self.assertLessEqual(packed_cost, 8000)
+
+    def test_single_oversized_record_is_not_sent_to_generation(self):
+        oversized = Evidence(
+            **{**evidence().__dict__, "display_text": "x" * 8001}
+        )
+        with self.assertRaisesRegex(GroundedGenerationError, "requires retrieved evidence"):
+            build_generation_request("Question", (oversized,))
+
     def test_valid_citation_and_registered_quote_pass(self):
         draft = parse_draft(
             json.dumps(
@@ -213,9 +243,16 @@ class GroundingContractTests(unittest.TestCase):
         result = generate_verified(runtime, "Who was Nicholas?", (evidence(),))
         self.assertEqual(2, result.attempts)
         correction = runtime.calls[1].user_prompt
+        self.assertIn("truncated before completing strict JSON", correction)
         self.assertIn("…[truncated]", correction)
         self.assertNotIn("x" * 2000, correction)
         self.assertIn("120 words", correction)
+
+    def test_malformed_json_is_not_reported_as_truncation(self):
+        with self.assertRaisesRegex(
+            GroundedGenerationError, "model output was not strict JSON"
+        ):
+            parse_draft("not JSON at all")
 
     def test_invented_citation_gets_one_bounded_correction(self):
         invalid = json.dumps(

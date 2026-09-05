@@ -218,3 +218,23 @@ earlier one superseded; history is not rewritten.
 - **Limit:** The 120-word cap is a v0.1 operational bound, not a claim that every
   Orthodox question can be answered completely in that space. The answer may
   abstain when the available evidence or bounded format is insufficient.
+
+## OI-017 - Fit evidence to the reference substrate's trained context
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** Grounded generation packs at most 8,000 characters of complete
+  evidence records. A single record larger than that limit is not silently
+  truncated or sent to the model; if no complete record fits, generation
+  abstains through the existing verifier-failure path. JSON parse failures that
+  end in an incomplete object or string are reported as apparent truncation,
+  separately from other malformed JSON.
+- **Reason:** OLMo 2 7B has a 4,096-token trained context. The former 18,000-
+  character evidence ceiling could consume roughly 4,500 tokens before system
+  instructions, the question, correction material, or the 700-token output
+  allowance. Preserving whole evidence records also avoids presenting a partial
+  source under the full record's provenance hash.
+- **Limit:** Character count is a deterministic conservative packing proxy, not
+  tokenizer-exact accounting. Apparent truncation is inferred from an incomplete
+  JSON prefix because the currently claimed runtime seam does not expose a
+  completion finish reason.
