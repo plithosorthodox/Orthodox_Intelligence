@@ -257,6 +257,12 @@ def serve(
             f"Model: Sofiia v0.1 · {runtime.get('runtime', 'local runtime')} · "
             "loopback only"
         )
+        # Which constraint the model server will actually honour. It is worth
+        # a line: when nothing constrains the model, every answer comes back
+        # as unverifiable prose and the refusal blames the verifier.
+        constraint = runtime.get("structured_output")
+        if constraint:
+            print(f"Structured output: {constraint}")
     else:
         print("Model: Sofiia v0.1 selected but not connected")
     print(

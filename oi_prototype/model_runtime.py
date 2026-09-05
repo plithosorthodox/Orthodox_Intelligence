@@ -145,7 +145,7 @@ class LlamaCppServerRuntime:
         self.grammar = grammar_path.read_text(encoding="utf-8")
         if timeout_seconds <= 0:
             raise ModelRuntimeError("runtime timeout must be positive")
-        self._constraint: str | None = None
+        self._constraint: str | None = self._probe_constraint()
 
     def status(self) -> dict[str, Any]:
         return {
@@ -156,7 +156,7 @@ class LlamaCppServerRuntime:
             "license": self.model.license_spdx,
             "remote_fallback": False,
             "production_runtime": False,
-            "structured_output": self._constraint or "not yet probed",
+            "structured_output": self._constraint or "unknown until the model server answers",
         }
 
     def _get_json(self, path: str) -> Any:
@@ -191,14 +191,20 @@ class LlamaCppServerRuntime:
                 return "json_schema"
             if name == "grammar" and "default_generation_settings" in payload:
                 return "grammar"
-        return "grammar"
+        return None
 
     def _constraints(self) -> list[str]:
-        """The constraints to attempt, best first, always ending unconstrained."""
+        """The constraints to attempt, best first, always ending unconstrained.
+
+        A server that answered nothing is not remembered as anything, so a
+        runtime constructed before the model server was started is asked again
+        rather than being stuck on a guess made when nobody was listening.
+        """
         if self._constraint is None:
             self._constraint = self._probe_constraint()
-        other = "grammar" if self._constraint == "json_schema" else "json_schema"
-        return [self._constraint, other, "none"]
+        first = self._constraint or "grammar"
+        other = "grammar" if first == "json_schema" else "json_schema"
+        return [first, other, "none"]
 
     @staticmethod
     def _apply_constraint(body: dict[str, Any], constraint: str, grammar: str) -> None:
