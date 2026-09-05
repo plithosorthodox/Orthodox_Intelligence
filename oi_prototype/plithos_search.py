@@ -42,6 +42,13 @@ TRANSLITERATION = {
 _WORD_RE = re.compile(r"[0-9a-z\u0370-\u03ff\u0400-\u04ff\u0600-\u06ff]+")
 _LATIN_RE = re.compile(r"[0-9a-z]+")
 _SPLIT_RE = re.compile(r"[\s,.;:()\[\]\"'‘’“”·/–—-]+")
+_NAME_RANK_STOPWORDS = frozenset(
+    {
+        "a", "about", "an", "and", "are", "be", "been", "did", "do", "does",
+        "for", "how", "is", "me", "of", "the", "tell", "was", "were", "what",
+        "when", "where", "which", "who", "why",
+    }
+)
 
 
 def normalize_search(value: object) -> str:
@@ -133,6 +140,21 @@ def display_name_score(query: object, display_name: object) -> int:
     return 5
 
 
+def _name_rank_tokens(value: object) -> set[str]:
+    normalized = transliterate_latin(value) or normalize_search(value)
+    return {
+        token for token in _LATIN_RE.findall(normalized)
+        if token not in _NAME_RANK_STOPWORDS
+    }
+
+
+def _query_name_rank_tokens(value: object) -> set[str]:
+    tokens: set[str] = set()
+    for variant in alias_variants(value):
+        tokens.update(_name_rank_tokens(variant))
+    return tokens
+
+
 @dataclass(frozen=True)
 class SearchHit:
     record_id: str
@@ -145,6 +167,7 @@ class SearchHit:
     match: str
     great: bool = False
     bm25: float | None = None
+    name_overlap: int = 0
 
 
 class CorpusSearch:
@@ -152,13 +175,6 @@ class CorpusSearch:
 
     def __init__(self, db_path: str | Path):
         self.db_path = Path(db_path)
-        # check_same_thread=False plus a lock, matching EvidenceStore in
-        # corpus.py. The prototype server is a ThreadingHTTPServer, so the
-        # connection is opened on the main thread and used from a different
-        # worker thread on every request; without this, each question raises
-        # sqlite3.ProgrammingError once a real corpus is installed. The
-        # connection is read-only, and the lock keeps concurrent queries from
-        # sharing one cursor.
         self.db = sqlite3.connect(
             f"file:{self.db_path}?mode=ro", uri=True, check_same_thread=False
         )
@@ -245,6 +261,7 @@ class CorpusSearch:
 
     def _name_hits(self, query: object, entity_types: set[str] | None) -> dict[str, SearchHit]:
         variants = alias_variants(query)
+        query_rank_tokens = _query_name_rank_tokens(query)
         hits = {}
         for entity_id, entity in self._entities.items():
             if entity_types and entity["entity_type"] not in entity_types:
@@ -259,6 +276,10 @@ class CorpusSearch:
                         best_score = min(best_score, display_name_score(variant, name))
             if not matched:
                 continue
+            best_overlap = max(
+                (len(query_rank_tokens.intersection(_name_rank_tokens(name))) for name in names),
+                default=0,
+            )
             canonical_row = next((r for r in self._names.get(entity_id, ()) if r["name_type"] == "canonical"), None)
             title = self._canonical_name(entity_id)
             hits[entity_id] = SearchHit(
@@ -271,6 +292,7 @@ class CorpusSearch:
                 score=best_score,
                 match="name",
                 great=bool(entity["great"]),
+                name_overlap=best_overlap,
             )
         return hits
 
@@ -319,6 +341,7 @@ class CorpusSearch:
         def key(hit: SearchHit):
             return (
                 hit.score,
+                -hit.name_overlap,
                 0 if hit.entity_id in self._has_text else 1,
                 0 if hit.great else 1,
                 hit.bm25 if hit.bm25 is not None else 0.0,
