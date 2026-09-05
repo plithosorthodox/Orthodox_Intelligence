@@ -273,10 +273,14 @@ function renderSessionLists() {
 // again - three steps and a lost view for something a reader does constantly.
 // It only overlays on a narrow window, where there is no room for both.
 const RAIL_HIDDEN = "rail-hidden";
-const NARROW = window.matchMedia("(max-width: 760px)");
+const NARROW = typeof window.matchMedia === "function"
+  ? window.matchMedia("(max-width: 760px)")
+  : null;
 
 function railIsOverlay() {
-  return NARROW.matches;
+  // No matchMedia, or a query that answers nothing useful: treat the window as
+  // narrow. The overlay works at every width; the side-by-side rail does not.
+  return !NARROW || NARROW.matches !== false;
 }
 
 function openSessionDrawer() {
@@ -637,7 +641,7 @@ document.addEventListener("keydown", (event) => {
 
 
 if (railIsOverlay()) closeSessionDrawer(false); else openSessionDrawer();
-NARROW.addEventListener("change", () => {
+if (NARROW && NARROW.addEventListener) NARROW.addEventListener("change", () => {
   if (railIsOverlay()) closeSessionDrawer(false);
   else openSessionDrawer();
 });

@@ -28,12 +28,18 @@ button { cursor: pointer; }
    patterned page reads as a widget embedded in a brochure; every assistant a
    reader has used fills the window, keeps its chats down one side, and puts
    the composer along the bottom. */
-.app { display: grid; grid-template-columns: 17rem 1fr; height: 100%; }
-.app.rail-hidden { grid-template-columns: 0 1fr; }
+/* Narrow first, and widen only on a window proven wide enough. The other way
+   round, the desktop grid is the default and a phone depends on a max-width
+   query matching to escape it - and when it did not match, the rail kept its
+   seventeen rems and the conversation was left with whatever remained, one
+   word to a line. A layout should fail towards the smaller shape, not the
+   larger. */
+.app { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 100vh; min-height: 100dvh; }
 
-.session-drawer { display: flex; min-height: 0; padding: .75rem; flex-direction: column; border-right: 1px solid var(--line); background: var(--rail); overflow: hidden; }
+.session-drawer { position: fixed; z-index: 30; inset: 0 auto 0 0; display: flex; width: min(19rem, 86vw); min-height: 0; padding: .75rem; flex-direction: column; border-right: 1px solid var(--line); background: var(--rail); box-shadow: 1rem 0 3rem rgba(0, 0, 0, .45); overflow: hidden; }
 .app.rail-hidden .session-drawer { display: none; }
-.drawer-heading { display: flex; align-items: center; justify-content: space-between; padding: .25rem .25rem .5rem; }
+.drawer-scrim { position: fixed; z-index: 20; inset: 0; display: block; width: 100%; height: 100%; border: 0; background: rgba(8, 5, 10, .6); }
+.app.rail-hidden .drawer-heading { display: flex; align-items: center; justify-content: space-between; padding: .25rem .25rem .5rem; }
 .brand { font-family: Georgia, serif; font-size: 1.3rem; font-weight: 600; letter-spacing: .01em; }
 .icon-button { border: 1px solid transparent; border-radius: .55rem; padding: .3rem .55rem; color: var(--muted); background: transparent; font-size: 1rem; line-height: 1; }
 .icon-button:hover { color: var(--ink); background: var(--panel); }
@@ -111,14 +117,11 @@ select { border: 1px solid transparent; border-radius: .4rem; padding: .15rem .3
 select:hover { border-color: var(--line); }
 .composer-hint { margin-left: auto; }
 
-@media (max-width: 760px) {
-  /* Below this the rail cannot sit beside the conversation, so it slides over
-     it and the scrim comes back. */
-  .app { grid-template-columns: 1fr; }
-  .session-drawer { position: fixed; z-index: 30; inset: 0 auto 0 0; width: min(19rem, 86vw); box-shadow: 1rem 0 3rem rgba(0, 0, 0, .45); }
-  .app.rail-hidden .session-drawer { display: none; }
-  .drawer-scrim { position: fixed; z-index: 20; inset: 0; display: block; width: 100%; height: 100%; border: 0; background: rgba(8, 5, 10, .6); }
-  .app.rail-hidden .drawer-scrim { display: none; }
-  .composer-hint { display: none; }
+@media (min-width: 761px) {
+  /* Room for both: the rail stops floating and takes a column of its own. */
+  .app { grid-template-columns: 17rem minmax(0, 1fr); }
+  .app.rail-hidden { grid-template-columns: minmax(0, 1fr); }
+  .session-drawer { position: static; width: auto; box-shadow: none; }
+  .drawer-scrim, .app.rail-hidden .drawer-scrim { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
