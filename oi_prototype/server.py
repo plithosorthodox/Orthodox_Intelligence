@@ -26,6 +26,7 @@ def build_default_engine(
     *,
     force_demo: bool = False,
     model_endpoint: str | None = None,
+    model_timeout_seconds: float = 120.0,
 ) -> PrototypeEngine:
     policy = BoundaryPolicy(root / "config" / "prototype_policy.v0.2.json")
     install_dir = corpus_install or (root / "artifacts" / "plithos")
@@ -33,7 +34,11 @@ def build_default_engine(
         store = PlithosEvidenceStore(install_dir)
     else:
         store = EvidenceStore(root / "prototype" / "corpus" / "oi-policy-demo.v0.1.json")
-    runtime = LlamaCppServerRuntime(model_endpoint) if model_endpoint else None
+    runtime = (
+        LlamaCppServerRuntime(model_endpoint, timeout_seconds=model_timeout_seconds)
+        if model_endpoint
+        else None
+    )
     return PrototypeEngine(store, policy, model_runtime=runtime)
 
 
@@ -48,6 +53,7 @@ class PrototypeServer(ThreadingHTTPServer):
         *,
         force_demo: bool = False,
         model_endpoint: str | None = None,
+        model_timeout_seconds: float = 120.0,
     ):
         self.root = root
         self.static_root = root / "prototype"
@@ -57,6 +63,7 @@ class PrototypeServer(ThreadingHTTPServer):
             corpus_install=self.corpus_install,
             force_demo=force_demo,
             model_endpoint=model_endpoint,
+            model_timeout_seconds=model_timeout_seconds,
         )
         super().__init__(address, PrototypeHandler)
 
@@ -225,6 +232,7 @@ def serve(
     *,
     force_demo: bool = False,
     model_endpoint: str | None = None,
+    model_timeout_seconds: float = 120.0,
 ) -> None:
     server = PrototypeServer(
         ("127.0.0.1", port),
@@ -232,6 +240,7 @@ def serve(
         corpus_install=corpus_install,
         force_demo=force_demo,
         model_endpoint=model_endpoint,
+        model_timeout_seconds=model_timeout_seconds,
     )
     host, selected_port = server.server_address
     status = server.engine.status()

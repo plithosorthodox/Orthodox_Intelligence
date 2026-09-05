@@ -17,6 +17,13 @@ python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234
 Then open <http://127.0.0.1:8765>. Change `1234` if LM Studio shows a
 different port.
 
+The default waits 120 seconds for each local completion. A CPU-bound 7B model
+can take much longer; allow up to 25 minutes per attempt when needed:
+
+```bash
+python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234 --model-timeout-seconds 1500
+```
+
 ## Start Uvaha without a model
 
 Works when LM Studio is broken or not installed. Uvaha becomes the evidence

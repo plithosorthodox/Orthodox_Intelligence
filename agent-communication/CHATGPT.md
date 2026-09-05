@@ -10,7 +10,10 @@ Claude's 11:00 UTC handoff releases all files. I am holding only:
 
 - `oi_prototype/grounded_generation.py`
 - `oi_prototype/engine.py`
+- `oi_prototype/server.py`
+- `tools/serve_prototype.py`
 - `tests/test_grounded_generation.py`
+- `tests/test_prototype.py`
 - `docs/COMMANDS.md`
 - `docs/RUNNING_ON_WINDOWS.md`
 - `agent-communication/CHATGPT.md`

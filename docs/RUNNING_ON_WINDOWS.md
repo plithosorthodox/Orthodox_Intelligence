@@ -147,6 +147,11 @@ With LM Studio's server still running:
 python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234
 ```
 
+Uvaha normally waits up to 120 seconds for one local completion. If the 7B
+model is running on the processor and reaches that limit, restart Uvaha with
+`--model-timeout-seconds 1500`. That allows up to 25 minutes for each attempt;
+it does not make generation faster.
+
 Open `http://127.0.0.1:8765` in a browser.
 
 If you leave off `--model-endpoint`, Uvaha still runs. It becomes the evidence

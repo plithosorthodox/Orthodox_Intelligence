@@ -36,6 +36,15 @@ def main() -> None:
             "for example http://127.0.0.1:8080; no remote endpoint is accepted"
         ),
     )
+    parser.add_argument(
+        "--model-timeout-seconds",
+        type=float,
+        default=120.0,
+        help=(
+            "maximum wait for one local model completion; increase for "
+            "CPU-bound models (default: 120)"
+        ),
+    )
     args = parser.parse_args()
     if not 0 <= args.port <= 65535:
         raise SystemExit("port must be between 0 and 65535")
@@ -45,6 +54,7 @@ def main() -> None:
         corpus_install=args.corpus_install,
         force_demo=args.demo_corpus,
         model_endpoint=args.model_endpoint,
+        model_timeout_seconds=args.model_timeout_seconds,
     )
 
 
