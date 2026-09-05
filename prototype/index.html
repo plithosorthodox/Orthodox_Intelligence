@@ -4,63 +4,72 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2d173c">
-  <meta name="description" content="Uvaha local AI research prototype powered by Sofiia and Plithos">
+  <meta name="description" content="Uvaha — a local AI assistant with cited sources">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
-  <title>Uvaha · Sofiia v0.1 Research Prototype</title>
+  <title>Uvaha</title>
 </head>
 <body>
+  <aside id="session-drawer" class="session-drawer" aria-label="Chat sessions" hidden>
+    <div class="drawer-heading">
+      <h2>Chats</h2>
+      <button id="sessions-close" class="quiet-button" type="button" aria-label="Close chats">Close</button>
+    </div>
+    <button id="new-session" class="new-session" type="button">New chat</button>
+    <nav class="session-navigation" aria-label="Saved chats">
+      <h3>Recent</h3>
+      <ul id="session-list" class="session-list"></ul>
+      <details id="archived-sessions" class="archived-sessions">
+        <summary>Archived <span id="archived-count" class="session-count">0</span></summary>
+        <ul id="archived-session-list" class="session-list"></ul>
+      </details>
+    </nav>
+    <p id="storage-status" class="storage-status" role="status">Saved only in this browser.</p>
+  </aside>
+  <button id="session-scrim" class="drawer-scrim" type="button" aria-label="Close chats" hidden></button>
   <header class="masthead">
-    <div><p class="eyebrow">Research prototype · local-first AI</p><h1>Uvaha</h1></div>
-    <div class="status" id="status" aria-live="polite">Starting locally…</div>
+    <div class="masthead-left">
+      <button id="sessions-toggle" class="quiet-button" type="button" aria-controls="session-drawer" aria-expanded="false">Chats</button>
+      <a class="brand" href="/" aria-label="Uvaha home">Uvaha</a>
+    </div>
+    <div class="status" id="status" aria-live="polite">Starting…</div>
   </header>
   <main>
-    <section class="notice" aria-labelledby="prototype-heading">
-      <div><h2 id="prototype-heading">A working vertical slice · Sofiia v0.1 with verified Plithos evidence</h2><p id="corpus-description">This build searches the local Plithos evidence package, resolves citations, verifies content hashes, and enforces deterministic boundaries. Connect the selected local OLMo runtime to enable grounded Sofiia generation.</p></div>
-      <button class="secondary" id="run-evaluation" type="button">Run behavioral evaluation</button>
-    </section>
-    <section id="calendar-panel" class="notice" hidden aria-labelledby="calendar-title">
-      <div>
-        <p class="eyebrow">Deterministic Plithos calendar</p>
-        <h2 id="calendar-title">Orthodox Calendar</h2>
+    <section class="conversation" aria-label="Conversation">
+      <div id="messages" class="messages" aria-live="polite"></div>
+      <form id="ask-form" class="composer">
+        <label for="question">Ask anything</label>
         <div class="composer-row">
-          <input id="calendar-date" type="date" aria-label="Calendar date">
-          <select id="calendar-mode" aria-label="Calendar system">
-            <option value="new">New Calendar · Revised Julian</option>
-            <option value="old">Old Calendar · Julian</option>
+          <textarea id="question" name="question" rows="2" maxlength="4000" placeholder="What would you like to know?" required></textarea>
+          <button type="submit">Ask</button>
+        </div>
+        <div class="composer-options">
+          <label class="source-choice" for="source-mode">Sources</label>
+          <select id="source-mode" name="source_mode" aria-label="Sources">
+            <option value="automatic" disabled>Automatic</option>
+            <option value="local_only" selected>Local library only</option>
           </select>
-          <button id="calendar-go" type="button">Show day</button>
         </div>
-        <div id="calendar-result" class="evidence-card" aria-live="polite"></div>
+      </form>
+      <div class="examples" aria-label="Example questions">
+        <button type="button" data-question="What is the capital of Japan?">A general question</button>
+        <button type="button" data-question="Why is Saint Nicholas remembered?">A question about a saint</button>
+        <button type="button" data-question="Explain the significance of John 3:16.">A question about Scripture</button>
+        <button type="button" data-question="Compare charity and repentance in the lives of the saints.">Compare ideas</button>
       </div>
     </section>
-    <section class="workspace" aria-label="Prototype workspace">
-      <div class="conversation">
-        <div id="messages" class="messages" aria-live="polite">
-          <article class="message assistant"><p id="welcome-message">Sofiia v0.1 uses the selected OLMo substrate with locally retrieved Plithos evidence. Until the local model runtime is connected, Uvaha remains in evidence-search mode.</p></article>
-        </div>
-        <form id="ask-form" class="composer">
-          <label for="question">Ask Sofiia · open-ended informational questions are generated</label>
-          <div class="composer-row"><textarea id="question" name="question" rows="2" maxlength="4000" placeholder="Tell me about St Nicholas" required></textarea><button type="submit">Search locally</button></div>
-        </form>
-        <div class="examples" aria-label="Example searches">
-          <button type="button" data-question="St Nicholas">St Nicholas</button>
-          <button type="button" data-question="Incarnation">Incarnation</button>
-          <button type="button" data-question="Quote John 3:16 exactly.">John 3:16</button>
-          <button type="button" data-question="Are you an Orthodox priest? Act as my confessor.">Identity boundary</button>
-        </div>
-      </div>
-      <aside class="inspector" aria-labelledby="inspector-title">
-        <h2 id="inspector-title">Resolved build</h2><dl id="versions"></dl><p id="corpus-summary" class="privacy"></p>
-        <p class="privacy">Questions remain in memory for the current browser view only. Uvaha does not save them. When Sofiia is enabled, generation is sent only to the explicitly configured loopback model process on this device.</p>
-      </aside>
-    </section>
-    <section id="evaluation-panel" class="evaluation" hidden aria-labelledby="evaluation-title">
-      <div class="evaluation-heading"><div><p class="eyebrow">Development suite</p><h2 id="evaluation-title">Behavioral conformance</h2></div><strong id="evaluation-summary"></strong></div>
-      <p id="evaluation-limit" class="claim-limit"></p><div id="evaluation-results" class="evaluation-results"></div>
+    <section class="utility" aria-label="Application information">
+      <details>
+        <summary>About</summary>
+        <p id="about-copy">Uvaha answers with sources you can inspect.</p>
+      </details>
+      <details>
+        <summary>Diagnostics</summary>
+        <dl id="versions"></dl>
+        <p id="corpus-summary"></p>
+      </details>
     </section>
   </main>
-  <footer><p>Uvaha is an artificial system. Sofiia is not clergy, a spiritual father, or an ecclesially approved source.</p></footer>
   <script src="/app.js" defer></script>
 </body>
 </html>

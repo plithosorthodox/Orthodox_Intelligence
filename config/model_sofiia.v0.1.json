@@ -12,9 +12,10 @@
   "evidence_mode": "retrieval",
   "evidence_in_weights": false,
   "elf_version": null,
-  "generation_contract": "sofiia-grounded-json-v0.1",
+  "generation_contract": "sofiia-grounded-json-v0.2",
   "verification": {
     "citations_must_resolve_to_retrieved_segments": true,
+    "every_generated_claim_must_name_its_supporting_segments": true,
     "direct_quotations_must_match_retrieved_text": true,
     "unsupported_model_memory_is_not_a_citable_source": true,
     "one_bounded_regeneration_after_verification_failure": true

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .corpus import CorpusError, Evidence
 from .plithos_search import CorpusSearch, normalize_search
+from .retrieval import RetrievalResult, exact_result, merge_candidates, plan_query
 
 
 INSTALL_MANIFEST = "installed.json"
@@ -67,7 +68,7 @@ class PlithosEvidenceStore:
                 "SELECT 1 FROM texts WHERE exact_text=1 LIMIT 1"
             ).fetchone()
         )
-        self.search_version = "plithos-search-c788cda3-oi-specificity1"
+        self.search_version = "plithos-search-c788cda3-oi-multiconcept1"
 
         self._scripture_books: list[tuple[str, str]] = []
         for row in self._db.execute(
@@ -135,10 +136,12 @@ class PlithosEvidenceStore:
             if not match:
                 continue
             chapter, verse = int(match.group(1)), int(match.group(2))
-            for row in self._db.execute(
-                "SELECT text_id, metadata_json FROM texts WHERE entity_id=? AND text_kind='scripture'",
-                (entity_id,),
-            ):
+            with self._search.connection() as db:
+                rows = db.execute(
+                    "SELECT text_id, metadata_json FROM texts WHERE entity_id=? AND text_kind='scripture'",
+                    (entity_id,),
+                ).fetchall()
+            for row in rows:
                 metadata = json.loads(row["metadata_json"])
                 if metadata.get("chapter") == chapter and metadata.get("verse") == verse:
                     return row["text_id"]
@@ -148,42 +151,44 @@ class PlithosEvidenceStore:
         normalized = normalize_search(question)
         for entity_id, title in self._exact_named_entities:
             if len(title) >= 4 and title in normalized:
-                row = self._db.execute(
-                    """
-                    SELECT text_id
-                      FROM texts
-                     WHERE entity_id=? AND exact_text=1
-                     ORDER BY text_id
-                     LIMIT 1
-                    """,
-                    (entity_id,),
-                ).fetchone()
+                with self._search.connection() as db:
+                    row = db.execute(
+                        """
+                        SELECT text_id
+                          FROM texts
+                         WHERE entity_id=? AND exact_text=1
+                         ORDER BY text_id
+                         LIMIT 1
+                        """,
+                        (entity_id,),
+                    ).fetchone()
                 if row:
                     return row["text_id"]
         return None
 
     def _best_text_id(self, entity_id: str) -> str | None:
-        row = self._db.execute(
-            """
-            SELECT text_id
-              FROM texts
-             WHERE entity_id=?
-             ORDER BY CASE text_kind
-                 WHEN 'hagiography' THEN 0
-                 WHEN 'definition' THEN 0
-                 WHEN 'prayer' THEN 0
-                 WHEN 'scripture' THEN 0
-                 WHEN 'patristic' THEN 0
-                 WHEN 'canon' THEN 0
-                 WHEN 'liturgical' THEN 0
-                 WHEN 'ascetic' THEN 0
-                 WHEN 'testimony' THEN 0
-                 ELSE 1 END,
-                 text_id
-             LIMIT 1
-            """,
-            (entity_id,),
-        ).fetchone()
+        with self._search.connection() as db:
+            row = db.execute(
+                """
+                SELECT text_id
+                  FROM texts
+                 WHERE entity_id=?
+                 ORDER BY CASE text_kind
+                     WHEN 'hagiography' THEN 0
+                     WHEN 'definition' THEN 0
+                     WHEN 'prayer' THEN 0
+                     WHEN 'scripture' THEN 0
+                     WHEN 'patristic' THEN 0
+                     WHEN 'canon' THEN 0
+                     WHEN 'liturgical' THEN 0
+                     WHEN 'ascetic' THEN 0
+                     WHEN 'testimony' THEN 0
+                     ELSE 1 END,
+                     text_id
+                 LIMIT 1
+                """,
+                (entity_id,),
+            ).fetchone()
         return row["text_id"] if row else None
 
     def _evidence_for_text(
@@ -193,37 +198,38 @@ class PlithosEvidenceStore:
         title_hint: str = "",
         score: float = 0.0,
     ) -> Evidence | None:
-        row = self._db.execute(
-            """
-            SELECT t.*, e.entity_type,
-                   COALESCE(
-                       (SELECT n.name FROM names n
-                         WHERE n.entity_id=t.entity_id AND n.name_type='canonical'
-                         ORDER BY n.name_id LIMIT 1),
-                       ?
-                   ) AS canonical_name
-              FROM texts t
-              JOIN entities e ON e.entity_id=t.entity_id
-             WHERE t.text_id=?
-            """,
-            (title_hint, text_id),
-        ).fetchone()
-        if row is None:
-            return None
+        with self._search.connection() as db:
+            row = db.execute(
+                """
+                SELECT t.*, e.entity_type,
+                       COALESCE(
+                           (SELECT n.name FROM names n
+                             WHERE n.entity_id=t.entity_id AND n.name_type='canonical'
+                             ORDER BY n.name_id LIMIT 1),
+                           ?
+                       ) AS canonical_name
+                  FROM texts t
+                  JOIN entities e ON e.entity_id=t.entity_id
+                 WHERE t.text_id=?
+                """,
+                (title_hint, text_id),
+            ).fetchone()
+            if row is None:
+                return None
+            source = db.execute(
+                """
+                SELECT s.source_class, s.record_json
+                  FROM text_sources ts
+                  JOIN sources s ON s.source_id=ts.source_id
+                 WHERE ts.text_id=?
+                 ORDER BY s.source_id
+                 LIMIT 1
+                """,
+                (text_id,),
+            ).fetchone()
 
         metadata = json.loads(row["metadata_json"])
         upstream = json.loads(row["upstream_json"])
-        source = self._db.execute(
-            """
-            SELECT s.source_class, s.record_json
-              FROM text_sources ts
-              JOIN sources s ON s.source_id=ts.source_id
-             WHERE ts.text_id=?
-             ORDER BY s.source_id
-             LIMIT 1
-            """,
-            (text_id,),
-        ).fetchone()
         source_class = source["source_class"] if source else row["text_kind"]
         title = row["canonical_name"] or title_hint or row["entity_id"]
         citation_label = metadata.get("citation_anchor") or title
@@ -244,18 +250,11 @@ class PlithosEvidenceStore:
             content_sha256=row["sha256"],
             exact_text=bool(row["exact_text"]),
             score=round(float(score), 6),
+            origin="plithos",
+            provider=self.search_version,
         )
 
-    def search(self, question: str, limit: int = 4) -> list[Evidence]:
-        limit = max(1, min(int(limit), 10))
-        direct_text = (
-            self._scripture_reference_text_id(question)
-            or self._named_exact_text_id(question)
-        )
-        if direct_text:
-            evidence = self._evidence_for_text(direct_text, score=0.0)
-            return [evidence] if evidence else []
-
+    def _evidence_for_hits(self, question: str, limit: int) -> list[Evidence]:
         hits = self._search.search(question, limit=max(limit * 4, 16))
         evidence: list[Evidence] = []
         seen_text_ids: set[str] = set()
@@ -275,9 +274,49 @@ class PlithosEvidenceStore:
                 continue
             seen_text_ids.add(text_id)
             evidence.append(item)
-            if len(evidence) >= limit:
-                break
         return evidence
+
+    def retrieve(self, question: str, limit: int = 4) -> RetrievalResult:
+        """Retrieve a relevant, concept-covering evidence set.
+
+        The exact-text resolver remains ahead of ordinary ranking.  Other
+        questions are planned into a combined query and bounded concept lanes;
+        evidence which only happens to share an unrelated word is not returned
+        as a sufficient corpus answer.
+        """
+
+        limit = max(1, min(int(limit), 10))
+        direct_text = (
+            self._scripture_reference_text_id(question)
+            or self._named_exact_text_id(question)
+        )
+        if direct_text:
+            evidence = self._evidence_for_text(direct_text, score=0.0)
+            if evidence is not None:
+                return exact_result(question, evidence)
+
+        plan = plan_query(question)
+        ranked: dict[str, list[Evidence]] = {}
+        queries: list[str] = []
+        for concept in plan.concepts:
+            token_query = " ".join(concept.tokens)
+            if len(concept.tokens) >= 2:
+                queries.extend((token_query, concept.query))
+            else:
+                queries.extend((concept.query, token_query))
+        queries.append(plan.combined_query)
+        for query in queries:
+            normalized = " ".join(query.split())
+            if not normalized or normalized in ranked:
+                continue
+            ranked[normalized] = self._evidence_for_hits(normalized, limit)
+        return merge_candidates(plan, ranked, limit=limit)
+
+    def search(self, question: str, limit: int = 4) -> list[Evidence]:
+        """Compatibility list API, returning only a sufficient evidence set."""
+
+        result = self.retrieve(question, limit=limit)
+        return list(result.evidence) if result.sufficient else []
 
     def resolve(self, segment_id: str) -> Evidence | None:
         return self._evidence_for_text(segment_id)

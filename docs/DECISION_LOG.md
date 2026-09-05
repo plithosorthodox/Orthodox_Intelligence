@@ -223,12 +223,16 @@ earlier one superseded; history is not rewritten.
 
 - **Date:** 2026-09-05
 - **Status:** Accepted for v0.1 development
-- **Decision:** Grounded generation packs at most 8,000 characters of complete
-  evidence records. A single record larger than that limit is not silently
-  truncated or sent to the model; if no complete record fits, generation
-  abstains through the existing verifier-failure path. JSON parse failures that
-  end in an incomplete object or string are reported as apparent truncation,
-  separately from other malformed JSON.
+- **Decision:** Grounded generation retains an 8,000-character upper bound for
+  complete evidence records and also fits the entire serialized request under
+  a 9,000-byte prompt proxy. That full-request budget includes instructions,
+  question, evidence text and metadata, source locators, and enough room for a
+  bounded correction. It is intended to leave room for 700 output tokens plus
+  396 safety tokens in OLMo 2's 4,096-token context. A complete record that does not fit is
+  skipped rather than silently truncated under its full-record provenance hash.
+  The correction excerpt is reduced further when necessary. JSON failures that
+  end in an incomplete object or string receive a distinct truncation result;
+  other invalid JSON receives a malformed-output result.
 - **Reason:** OLMo 2 7B has a 4,096-token trained context. The former 18,000-
   character evidence ceiling could consume roughly 4,500 tokens before system
   instructions, the question, correction material, or the 700-token output
@@ -239,7 +243,82 @@ earlier one superseded; history is not rewritten.
   JSON prefix because the currently claimed runtime seam does not expose a
   completion finish reason.
 
-## OI-018 - Ask the server which constraint it enforces, do not wait for a refusal
+## OI-018 - Require concept coverage and claim-linked sources
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** Plan compound questions as deterministic concept lanes, retrieve
+  each lane independently, and treat a local result as sufficient only when the
+  requested concepts are covered by an appropriately diverse evidence set.
+  Sofiia's generation contract represents the answer as one to three claims,
+  each with its own retrieved source references; Uvaha renders those claims as
+  prose with compact numbered citations.
+- **Reason:** Whole-question lexical search returned several records for one
+  Nicholas and none for Mary in a two-person comparison. It also matched
+  unrelated patristic passages for ordinary questions about leaves and
+  inflation. A nonempty result list is therefore not evidence that the corpus
+  supports the question. Claim-level source links make the support relationship
+  inspectable instead of presenting an undifferentiated citation list.
+- **Limit:** Concept coverage and claim-to-source linkage are not semantic
+  entailment proof. A labeled claim-support bank and a separately reviewed
+  verifier remain necessary before claiming that every paraphrase or inference
+  is entailed.
+
+## OI-019 - Optional request-scoped Web evidence
+
+- **Date:** 2026-09-05
+- **Status:** Provisional development integration; legal/privacy review required
+- **Decision:** Preserve the offline core and add a separately versioned Web
+  evidence provider that is disabled unless explicitly configured. When the
+  user selects Automatic sources and local retrieval is insufficient, Uvaha may
+  send only a bounded search query to Brave Search's LLM Context endpoint, then
+  perform answer generation locally. Returned chunks remain request-scoped,
+  source-attributed, untrusted evidence and never enter Plithos, training data,
+  evaluation archives, or ordinary logs. Brave Answers is not used.
+- **Privacy and license impact:** Standard Brave Search API service may retain
+  search queries for up to 90 days for billing and troubleshooting. An API key
+  and account are required; credentials stay server-side and are not committed
+  or exposed to the browser. Current terms restrict persistent result storage,
+  redistribution, and use for model training or evaluation. Public distribution
+  therefore requires owner/legal acceptance, an end-user privacy notice, and a
+  decision between bring-your-own credentials and a managed relay.
+- **Failure behavior:** Provider failure never changes the local corpus or model
+  path. Uvaha returns a short unavailable response, and Local library only mode
+  performs no outbound search request.
+
+## OI-020 - Browser-local chat sessions
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** Give the browser prototype separate accountless chat sessions
+  stored in browser `localStorage`. Users may create and switch chats, archive
+  and restore them, or confirm deletion. Session context is isolated by session
+  ID; archive is reversible organization and deletion removes the session from
+  the stored state. At most six bounded recent turns may return over loopback as
+  non-citable context for local retrieval and generation. Only the current
+  question is eligible for optional Web search; conversation history is never
+  sent to the provider. A saved assistant answer whose Web sources expired is
+  also excluded from later model context so it cannot become substitute
+  evidence without a fresh search.
+- **Continuity integrity:** A saved local source contributes only its segment ID
+  and content hash. The loopback engine resolves that pair again through the
+  currently installed corpus before using the corpus-owned title to clarify a
+  referential retrieval query. Saved excerpts and titles are never promoted to
+  evidence, mismatched hashes are ignored, and Web-origin sources are ineligible.
+- **Privacy boundary:** Uvaha does not encrypt this storage. Anyone or any
+  software with access to the browser profile may be able to read it, and
+  browser clearing, quota limits, private browsing, backups, or extensions may
+  affect retention. Deletion cannot guarantee removal from copies outside the
+  stored session state. Sessions are not project training, evaluation,
+  analytics, or server history.
+- **Web-result constraint:** The Brave response bundle remains request-scoped
+  and is not server-cached or imported into Plithos. Before a Web-backed answer
+  is saved, Web-origin source cards are filtered from the assistant message. A
+  reopened chat may retain the answer text and a note that the Web sources were
+  transient, but not their result bodies or source metadata. This filtering is
+  the required persistence constraint and must remain tested and disclosed.
+
+## OI-021 - Ask the server which constraint it enforces, do not wait for a refusal
 
 - **Date:** 2026-09-05
 - **Status:** Accepted for v0.1 development
@@ -263,7 +342,7 @@ earlier one superseded; history is not rewritten.
 - **Limit:** The probe recognises two servers. Anything else is treated as
   llama.cpp and falls through the chain on refusal.
 
-## OI-019 - Read an object the model did write; do not compose one it did not
+## OI-022 - Read an object the model did write; do not compose one it did not
 
 - **Date:** 2026-09-05
 - **Status:** Accepted for v0.1 development
@@ -279,7 +358,7 @@ earlier one superseded; history is not rewritten.
   changes nothing about verification: citations and quotations are checked
   exactly as before.
 
-## OI-020 - Name the check that failed
+## OI-023 - Name the check that failed
 
 - **Date:** 2026-09-05
 - **Status:** Accepted for v0.1 development
@@ -292,3 +371,11 @@ earlier one superseded; history is not rewritten.
   faults.
 - **Limit:** The reason names the check, not the draft. No unverified model
   text is shown.
+- **Limit:** UTF-8 byte count at three bytes per estimated prompt token is a
+  deterministic engineering proxy, not a conservative proof and not
+  tokenizer-exact accounting. Token-dense ASCII/adversarial inputs and the
+  runtime's chat template can exceed that estimate. Exact accounting with the
+  pinned OLMo tokenizer (or a demonstrably safe smaller bound) remains required
+  before this may be described as a guaranteed 4,096-token fit. Apparent
+  truncation is inferred from an incomplete JSON prefix because the current
+  runtime seam does not expose a completion finish reason.
