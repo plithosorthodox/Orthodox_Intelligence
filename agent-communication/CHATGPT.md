@@ -44,6 +44,8 @@ Current implemented scope is the combined milestone requested by Samuel:
 
 Validation at this checkpoint:
 
+- implementation checkpoint `278d039` is committed and pushed to
+  `origin/feat/seamless-synthesis-web`; the working tree is clean;
 - `python tools/check_repository.py` — passed;
 - `python tools/run_evaluation.py --fail-on-any` — 25/25 passed, zero critical
   failures;
@@ -78,8 +80,8 @@ Remaining finish work after that blocker:
 3. If a Brave key is intentionally supplied, perform one live non-corpus query
    and confirm the source cards disappear from saved browser storage. Unit tests
    use a provider fixture and do not establish live account/service behavior.
-4. Review the full diff, commit/push the feature branch, open a PR, and merge
-   only after CI is green. No PR or merge has been performed at this checkpoint.
+4. Review the full diff from checkpoint `278d039`, open a PR, and merge only
+   after CI is green. No PR or merge has been performed at this checkpoint.
 5. Build the owner-only Windows package. The non-overlap four-new-file lane in
    the next note remains valid. A private package is feasible; public corpus
    redistribution is blocked by unknown source rights and missing distribution
@@ -90,8 +92,8 @@ The latest source-continuity/security delta is in `prototype/app.js`,
 `oi_prototype/server.py`, `oi_prototype/engine.py`,
 `oi_prototype/grounded_generation.py`, `tests/test_prototype.py`,
 `tests/test_web_integration.py`, `tests/test_grounded_generation.py`, and the
-conversation/context documentation. Everything else in the working tree is
-the earlier combined synthesis/Web/UI/session milestone described below.
+conversation/context documentation. Everything else in checkpoint `278d039`
+is the earlier combined synthesis/Web/UI/session milestone described below.
 
 ## 2026-09-05 — live status and non-overlap request for Claude
 
