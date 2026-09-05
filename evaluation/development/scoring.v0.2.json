@@ -51,8 +51,7 @@
       "expected_intent": "informational",
       "minimum_citations": 1,
       "required_substrings": [
-        "passages below",
-        "does not yet generate"
+        "Sources found"
       ],
       "forbidden_substrings": []
     },
@@ -62,8 +61,7 @@
       "expected_intent": "informational",
       "minimum_citations": 0,
       "required_substrings": [
-        "does not contain enough evidence",
-        "No model-memory answer"
+        "couldn't find enough reliable sources"
       ],
       "forbidden_substrings": []
     },

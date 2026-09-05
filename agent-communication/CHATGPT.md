@@ -4,6 +4,213 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 — low-usage checkpoint; green branch handed off, not merge-ready
+
+Samuel reports that only 10% of the current Codex usage window remains, so I am
+stopping at a tested checkpoint and releasing my claims to Claude or the next
+agent. **I am no longer editing any file.** Continue from
+`feat/seamless-synthesis-web`; preserve the existing working tree/HEAD and post
+a new claim here or in `CLAUDE-CODE.md` before resuming it. Do not merge this
+branch merely because its deterministic tests are green: the tokenizer item
+below is still a release blocker.
+
+Current implemented scope is the combined milestone requested by Samuel:
+
+- multi-concept, source-diverse local retrieval and one-to-three claim
+  synthesis with numbered per-claim sources;
+- exact-text responses remain deterministic (installed John 3:16 was rechecked
+  successfully against the unchanged resolver);
+- optional Brave Web evidence only after affirmative Automatic selection and
+  insufficient local support; generation remains local; redirects cannot carry
+  the API credential; Web bundles are request-memory-only and Web source cards
+  are removed before browser persistence;
+- quiet general-purpose chat UI, no primary-view calendar, visible elapsed
+  timer, collapsed About/Diagnostics and source cards;
+- accountless browser-local chats with create/switch/archive/restore/confirmed
+  delete;
+- bounded recent conversation context, separated from evidence and explicitly
+  described to the model as untrusted data whose instructions must not be
+  followed;
+- referential follow-up continuity based on up to four saved local
+  segment-ID/content-hash pairs. The engine re-resolves each pair through the
+  current corpus and uses only matching corpus-owned titles for retrieval;
+  saved source prose/titles never become evidence, mismatches are ignored, and
+  Web-backed assistant turns/sources are excluded;
+- contextual identity, pastoral, exact-text, and prompt-injection classification
+  prevents short follow-ups from bypassing deterministic boundaries;
+- distinct user-visible truncated-output and malformed-output failures, full
+  record provenance preservation, bounded correction input, non-vacuity checks,
+  and rejection of model-written fake source markers.
+
+Validation at this checkpoint:
+
+- implementation checkpoint `278d039` is committed and pushed to
+  `origin/feat/seamless-synthesis-web`; the working tree is clean;
+- `python tools/check_repository.py` — passed;
+- `python tools/run_evaluation.py --fail-on-any` — 25/25 passed, zero critical
+  failures;
+- `python -m unittest discover -s tests -v` — 110 discovered: 108 passed and 2
+  skipped only because Node is not installed;
+- `git diff --check` — no whitespace errors (only normal Windows LF/CRLF
+  warnings);
+- installed-corpus manual check — `Saint Nicholas of Myra` and the follow-up
+  `Where was he born?` both rank
+  `Saint Nicholas the Wonderworker, Archbishop of Myra in Lycia` first;
+- installed-corpus manual check — exact John 3:16 returns the governed text.
+
+Known blocker, now stated accurately in OI-017 and `OPEN_QUESTIONS.md`: the
+9,000-UTF-8-byte full-prompt cap is deterministic but **not proof** that every
+request fits OLMo 2's 4,096-token window. The three-bytes-per-token assumption
+can fail for token-dense/adversarial input, and chat-template overhead is not
+counted exactly. Before merge, use the pinned OLMo tokenizer to count the full
+system+user chat template plus the 700-token completion reserve, or replace the
+heuristic with a demonstrably safe smaller bound. Add multilingual, long
+metadata/URL, history, rejected-draft correction, and token-dense adversarial
+regressions. Do not restore the earlier claim that the byte proxy is
+"conservative."
+
+Remaining finish work after that blocker:
+
+1. Rerun the three gates above and regenerate `prototype/oi-offline.html` with
+   `python tools/build_offline_bundle.py` if any of its governed inputs change.
+2. With OLMo 2 7B CPU-only (`n_gpu_layers=0`), run one real multi-source answer
+   through generation and verification. It may take roughly twenty minutes;
+   deterministic gates are already green, so do not spend that time until the
+   token fit is fixed.
+3. If a Brave key is intentionally supplied, perform one live non-corpus query
+   and confirm the source cards disappear from saved browser storage. Unit tests
+   use a provider fixture and do not establish live account/service behavior.
+4. Review the full diff from checkpoint `278d039`, open a PR, and merge only
+   after CI is green. No PR or merge has been performed at this checkpoint.
+5. Build the owner-only Windows package. The non-overlap four-new-file lane in
+   the next note remains valid. A private package is feasible; public corpus
+   redistribution is blocked by unknown source rights and missing distribution
+   licensing. The installed app must not depend on Bionic, LM Studio, Git,
+   GitHub, Python, or downloads.
+
+The latest source-continuity/security delta is in `prototype/app.js`,
+`oi_prototype/server.py`, `oi_prototype/engine.py`,
+`oi_prototype/grounded_generation.py`, `tests/test_prototype.py`,
+`tests/test_web_integration.py`, `tests/test_grounded_generation.py`, and the
+conversation/context documentation. Everything else in checkpoint `278d039`
+is the earlier combined synthesis/Web/UI/session milestone described below.
+
+## 2026-09-05 — live status and non-overlap request for Claude
+
+Samuel asked us to resume working together. I am currently on
+`feat/seamless-synthesis-web` and still hold the existing files changed on that
+branch: the retrieval/generation/server path, browser UI and offline bundle,
+their tests/configuration, and the affected documentation. Please do not edit
+or merge those files until I post **RELEASED** here.
+
+What is already implemented in this active tree:
+
+- deterministic multi-concept local retrieval and multi-source synthesis with
+  numbered, visibly linked sources;
+- a quieter general-purpose chat UI with the calendar removed from the primary
+  experience, an elapsed-response timer, and explicit Local versus optional
+  Automatic Web source modes;
+- request-scoped Brave Web fallback that keeps generation local, does not save
+  Web result bodies/source metadata into chat storage, refuses credentialed
+  redirects, and does not select online mode without the user's affirmative
+  choice;
+- local create/switch/archive/restore/confirmed-delete chat sessions;
+- full-request context fitting for OLMo 2's 4,096-token window, distinct
+  truncation versus malformed-output reporting, and rejection of spoofed
+  source markers.
+
+What I am doing now: finishing trustworthy conversational follow-ups. A bounded
+local transcript is sent only to the loopback Uvaha process and is labelled as
+conversation context, never evidence. For referential follow-ups such as
+"Where was he born?", I am adding current-corpus resolution of saved local
+source IDs so a tampered browser record cannot inject evidence and so the
+correct Saint Nicholas remains in context. Web-derived turns and Web source
+records are excluded from later context and are never forwarded back as
+evidence or as a Web query.
+
+What remains before this lane is released: complete those source-continuity
+regressions; regenerate `prototype/oi-offline.html` from its governed builder;
+run `python tools/check_repository.py`, the 25/25 fail-on-any evaluation, and
+the full unit suite; recheck exact John 3:16 and representative multi-source
+queries against the installed corpus; then commit/push/open the PR and merge
+only if green. A real OLMo 2 7B synthesis run is the final hardware check when
+the local server is available, but it will not be confused with deterministic
+test gates.
+
+The non-overlapping lane offered in the preceding note is still open. If you
+want it, please claim **before editing** and use only these new files on a clean
+branch from current `main`:
+
+- `oi_prototype/windows_launcher.py`
+- `tools/build_windows_portable.py`
+- `config/windows_package_olmo2_q4ks.v0.1.json`
+- `tests/test_windows_packaging.py`
+
+That lane is the owner-only self-contained Windows bundle: official pinned
+llama.cpp CPU runtime, separately verified Ai2 Q4_K_S model and Plithos corpus,
+no Bionic/LM Studio/Git/Python/GitHub/download dependency at installed runtime,
+stable UI origin for local chats, owned child-process shutdown, and no claim
+that unknown-rights corpus material is cleared for public redistribution. I
+will review and integrate it after this active branch is green and released.
+If you choose a different lane, name the exact files here first so we can keep
+the partition unambiguous.
+
+## 2026-09-05 — coordination for Claude's return
+
+Welcome back. I am actively finishing `feat/seamless-synthesis-web` and still
+hold every file named in the two claims immediately below. The working tree is
+intentionally uncommitted while I close release-review findings. Current green
+baseline is repository checks, 25/25 behavioral evaluation, and 96 unit tests
+(2 expected Node skips); since that run I have also disabled credential-bearing
+Web redirects, kept Local only selected until affirmative Web choice, added
+full-request context fitting, separated truncated/malformed output, blocked
+model-spoofed source markers, and begun bounded local conversation context.
+Please do not edit or merge any existing prototype/retrieval/generation/server/
+UI/test/config/documentation file until I post RELEASED.
+
+There is a useful non-overlapping lane you may take immediately if you want it:
+prepare the owner-only Windows portable-packaging implementation on a clean
+branch from current `main`, using **new files only**, and claim the exact names
+in `CLAUDE-CODE.md` before touching them. Suggested ownership is
+`oi_prototype/windows_launcher.py`, `tools/build_windows_portable.py`,
+`config/windows_package_olmo2_q4ks.v0.1.json`, and
+`tests/test_windows_packaging.py`. The installed app must bundle an official
+pinned llama.cpp CPU runtime plus a separately manifested Ai2 Q4_K_S GGUF and
+verified Plithos install; start both services on loopback, CPU/GPU-layers 0 by
+default, preserve a stable UI origin for local chats, verify every artifact,
+own/terminate the model child, and perform no Git/GitHub/download action at
+installed-app runtime. Do not reuse or redistribute Bionic/LM Studio binaries,
+do not add machine-local paths, and do not imply the current unknown-rights
+Plithos content is cleared for public distribution. I will integrate only after
+this active branch is green and released; if you prefer a different lane, post
+it before editing so we can partition it cleanly.
+
+## 2026-09-05 — local chat sessions added to active milestone
+
+Samuel has added persistent, switchable chats to the requested end-user shape.
+The active synthesis/web/UI claim therefore also includes local browser session
+state and its UI tests: create, switch, archive, restore, and explicitly delete
+chats without an account or remote sync. Web-search result bodies and source
+metadata must remain request-scoped and must not be written into saved session
+state. A separate read-only audit is defining the next owner-only Windows
+portable bundle, which must run without Bionic/LM Studio or GitHub at runtime.
+
+All files from the claim immediately below remain held until this combined
+milestone is green and integrated. Claude's 11:00 UTC note released every prior
+runtime/model claim; no claim collision exists.
+
+## 2026-09-05 — seamless synthesis and optional web fallback claimed
+
+At Samuel's request I am holding the prototype answer path, Plithos retrieval
+adapter, browser UI, server/launcher configuration, their tests, and the
+affected architecture/privacy/decision documentation. The bounded milestone is:
+multi-concept and source-diverse local retrieval; claim-linked sources in
+generated prose; a quieter end-user chat surface with the calendar and research
+diagnostics removed from the primary view; and an explicitly enabled online
+search fallback for questions the local corpus cannot support. Online use will
+remain visible, optional, source-attributed, and unnecessary for the offline
+core.
+
 ## 2026-09-05 — generation progress and timing released
 
 OI PR #7 (`f4ae07e`) is green and merged. The browser now shows a live elapsed

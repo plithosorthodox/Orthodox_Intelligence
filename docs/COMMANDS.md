@@ -24,11 +24,48 @@ can take much longer; allow up to 25 minutes per attempt when needed:
 python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234 --model-timeout-seconds 1500
 ```
 
+## Optionally enable Web sources
+
+This requires a Brave Search API account and key. `read -s` accepts the key
+without displaying it or placing it directly in the command history:
+
+```bash
+cd ~/Orthodox_Intelligence
+read -s UVAHA_BRAVE_API_KEY
+export UVAHA_BRAVE_API_KEY
+python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234 --model-timeout-seconds 1500 --web-search
+```
+
+In PowerShell, the equivalent keeps the key out of the visible prompt:
+
+```powershell
+$secureKey = Read-Host "Brave Search API key" -AsSecureString
+$env:UVAHA_BRAVE_API_KEY = [System.Net.NetworkCredential]::new("", $secureKey).Password
+python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234 --model-timeout-seconds 1500 --web-search
+Remove-Item Env:UVAHA_BRAVE_API_KEY
+```
+
+Select **Automatic** in Uvaha to permit search when the local library does not
+cover the question. The search terms then leave this computer for Brave Search;
+the returned passages come back to the local process and the answer is still
+generated locally. Brave controls account eligibility, terms, retention, and
+pricing, so this optional mode may carry provider charges. The provider bundle
+is not server-cached and is not added to Plithos, training data, or evaluation
+data. Displayed source text and metadata can be saved in the browser's local
+chat storage for local-corpus evidence. Web-origin source cards are filtered
+before persistence; a reopened Web-backed answer retains only the answer and a
+note that its Web sources were not stored.
+
+Select **Local only**, or start Uvaha without `--web-search`, to make no outbound
+search requests. Close the terminal when finished to remove the environment
+variable from that shell.
+
 ## Start Uvaha without a model
 
 Works when LM Studio is broken or not installed. Uvaha becomes the evidence
 navigator: it searches the corpus and shows the sources, and says so rather
-than pretending a model is loaded.
+than pretending a model is loaded. Adding `--web-search` can retrieve Web
+sources, but without a model it still does not synthesize an answer.
 
 ```bash
 cd ~/Orthodox_Intelligence
@@ -185,3 +222,4 @@ have not:
 **Do not hand this folder to anyone else.** The installed corpus carries
 material whose redistribution rights have not been reviewed. It is built for
 your own machine.
+   the corpus, the boundaries, and exact-text retrieval all work.

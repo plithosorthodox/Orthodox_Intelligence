@@ -33,6 +33,11 @@ class Evidence:
     content_sha256: str
     exact_text: bool
     score: float
+    origin: str = "local"
+    provider: str = ""
+    published_at: str = ""
+    retrieved_at: str = ""
+    citation_ref: str = ""
 
     def as_dict(self) -> dict[str, object]:
         return asdict(self)

@@ -99,10 +99,25 @@ def _validate_loopback_endpoint(endpoint: str) -> str:
 _GROUNDED_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["answer", "citations", "quotes", "abstain"],
+    "required": ["answer", "quotes", "abstain"],
     "properties": {
-        "answer": {"type": "string"},
-        "citations": {"type": "array", "items": {"type": "string"}},
+        "answer": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["text", "citations"],
+                "properties": {
+                    "text": {"type": "string"},
+                    "citations": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+        },
         "quotes": {
             "type": "array",
             "items": {
@@ -167,21 +182,24 @@ class LlamaCppServerRuntime:
         except (HTTPError, URLError, OSError, ValueError):
             return None
 
-    def _probe_constraint(self) -> str:
-        """Ask the server which structured-output constraint it will actually honour.
+    def _probe_constraint(self) -> str | None:
+        """Ask the server which structured-output constraint it will honour.
 
-        This exists because the previous arrangement degraded only on a refusal,
-        and the refusal never came. llama.cpp enforces a GBNF `grammar` and
-        ignores `response_format`. LM Studio is the other way round: it enforces
-        an OpenAI-style json_schema and silently drops an unrecognised `grammar`
-        field, answering 200 with free prose. So a request written for llama.cpp
-        and sent to LM Studio came back as unconstrained narrative, the parser
-        called it "not strict JSON", and the reader was told the verifier had
-        rejected a draft when in truth nothing had constrained one.
+        Degrading only on a refusal did not work, because the refusal never
+        came. llama.cpp enforces a GBNF grammar and ignores response_format.
+        LM Studio is the other way round: it enforces an OpenAI-style
+        json_schema and silently drops an unrecognised grammar field, answering
+        200 with free prose. A request written for llama.cpp and sent to LM
+        Studio came back as unconstrained narrative, the parser called it "not
+        strict JSON", and the reader was told a draft had failed the verifier
+        when nothing had constrained one.
 
-        LM Studio publishes its own REST index at /api/v0/models; llama.cpp does
-        not. The shape is checked, not merely the status code, so a server that
-        answers every path with the same object cannot be mistaken for either.
+        LM Studio publishes a REST index at /api/v0/models; llama.cpp answers
+        404 there and carries default_generation_settings at /props. Both were
+        confirmed against a running llama.cpp. The shape of each answer is
+        checked, not merely its status, so a server that answers every path
+        alike is mistaken for neither, and a server that answered nothing is
+        not remembered as anything.
         """
         for path, name in (("/api/v0/models", "json_schema"), ("/props", "grammar")):
             payload = self._get_json(path)
@@ -194,29 +212,23 @@ class LlamaCppServerRuntime:
         return None
 
     def _constraints(self) -> list[str]:
-        """The constraints to attempt, best first, always ending unconstrained.
-
-        A server that answered nothing is not remembered as anything, so a
-        runtime constructed before the model server was started is asked again
-        rather than being stuck on a guess made when nobody was listening.
-        """
+        """The constraints to attempt, best first, always ending unconstrained."""
         if self._constraint is None:
             self._constraint = self._probe_constraint()
         first = self._constraint or "grammar"
         other = "grammar" if first == "json_schema" else "json_schema"
         return [first, other, "none"]
 
-    @staticmethod
-    def _apply_constraint(body: dict[str, Any], constraint: str, grammar: str) -> None:
+    def _apply_constraint(self, body: dict[str, Any], constraint: str) -> None:
         body.pop("grammar", None)
         body.pop("response_format", None)
         if constraint == "grammar":
-            body["grammar"] = grammar
+            body["grammar"] = self.grammar
         elif constraint == "json_schema":
             body["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "sofiia_grounded",
+                    "name": "sofiia_grounded_v0_2",
                     "strict": True,
                     "schema": _GROUNDED_SCHEMA,
                 },
@@ -262,15 +274,15 @@ class LlamaCppServerRuntime:
         }
         # The prose schema stays in the system prompt whatever happens here,
         # because a runtime that honours neither constraint still has to be
-        # told what to write. The constraint only guarantees that the answer
-        # PARSES and carries the four contract keys with the right types; it
+        # told what to write. A constraint only guarantees that the answer
+        # PARSES and carries the contract keys with the right types; it
         # guarantees nothing about truth. Whether a citation names a segment
         # that was actually retrieved, and whether a quote occurs in its
         # source, remain the verifier's job either way.
         payload = None
         last_error: Exception | None = None
         for constraint in self._constraints():
-            self._apply_constraint(body, constraint, self.grammar)
+            self._apply_constraint(body, constraint)
             try:
                 payload = self._post(body)
             except _GrammarRejected as exc:

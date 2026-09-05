@@ -1,7 +1,7 @@
 {
-  "name": "Uvaha Research Prototype",
+  "name": "Uvaha",
   "short_name": "Uvaha",
-  "description": "Local-first Uvaha prototype powered by Sofiia v0.1 and Plithos evidence",
+  "description": "A local AI assistant with cited sources",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#130d18",

@@ -70,8 +70,19 @@ def make_install(root: Path) -> Path:
             0,
             "Venerable Nicholas the Monk of Bulgaria",
         ),
+        (
+            "saint:mary-egypt",
+            "saint",
+            "mary-egypt",
+            0,
+            "Venerable Mary of Egypt",
+        ),
         ("work:incarnation", "work", "incarnation", 0, "On the Incarnation"),
         ("scripture:en:43", "scripture", "en:43", 0, "John"),
+        ("term:repentance", "term", "repentance", 0, "Repentance"),
+        ("term:prayer", "term", "prayer", 0, "Prayer"),
+        ("term:fasting", "term", "fasting", 0, "Fasting"),
+        ("work:unrelated", "work", "unrelated", 0, "An Unrelated Homily"),
     ]
     for entity_id, entity_type, key, great, title in entities:
         db.execute(
@@ -92,6 +103,11 @@ def make_install(root: Path) -> Path:
         ("source:hag", "Fixture Synaxarion", "hagiographic", "private"),
         ("source:pat", "Fixture Father", "patristic", "private"),
         ("source:scr", "Fixture Scripture", "scripture", "public_domain"),
+        ("source:mary", "Fixture Life of Mary", "hagiographic", "private"),
+        ("source:repentance", "Fixture Repentance", "editorial", "private"),
+        ("source:prayer", "Fixture Prayer", "editorial", "private"),
+        ("source:fasting", "Fixture Fasting", "editorial", "private"),
+        ("source:unrelated", "Fixture Homily", "patristic", "private"),
     ]
     for source_id, label, source_class, rights in sources:
         record = {
@@ -118,6 +134,11 @@ def make_install(root: Path) -> Path:
             0, "source:hag", {},
         ),
         (
+            "text:mary-egypt", "saint:mary-egypt", "hagiography",
+            "Venerable Mary of Egypt is remembered for repentance and ascetic conversion.",
+            0, "source:mary", {},
+        ),
+        (
             "text:incarnation", "work:incarnation", "patristic",
             "The Incarnation is treated here as the Word taking flesh for our salvation.",
             0, "source:pat", {"citation_anchor": "On the Incarnation §1"},
@@ -126,6 +147,26 @@ def make_install(root: Path) -> Path:
             "text:john316", "scripture:en:43", "scripture",
             "For God so loved the world, that he gave his only begotten Son.",
             1, "source:scr", {"chapter": 3, "verse": 16, "citation_anchor": "John 3:16"},
+        ),
+        (
+            "text:repentance", "term:repentance", "definition",
+            "Repentance is a turning of the person toward God.",
+            0, "source:repentance", {},
+        ),
+        (
+            "text:prayer", "term:prayer", "definition",
+            "Prayer directs attention and desire toward God.",
+            0, "source:prayer", {},
+        ),
+        (
+            "text:fasting", "term:fasting", "definition",
+            "Fasting disciplines appetite and can accompany prayer and repentance.",
+            0, "source:fasting", {},
+        ),
+        (
+            "text:unrelated", "work:unrelated", "patristic",
+            "This passing illustration says that leaves change color and mentions the current weather in Athens.",
+            0, "source:unrelated", {},
         ),
     ]
     for text_id, entity_id, kind, content, exact, source_id, metadata in records:
@@ -147,8 +188,8 @@ def make_install(root: Path) -> Path:
         "schema_version": "1",
         "language": "en",
         "upstream_commit": "fixture-upstream",
-        "entity_count": "4",
-        "text_count": "4",
+        "entity_count": str(len(entities)),
+        "text_count": str(len(records)),
     }
     for key, value in metadata.items():
         db.execute("INSERT INTO metadata VALUES (?,?)", (key, value))
@@ -164,7 +205,7 @@ def make_install(root: Path) -> Path:
                 "upstream_commit": "fixture-upstream",
                 "language": "en",
                 "features": ["saints", "scripture", "library"],
-                "counts": {"entities": 4, "texts": 4},
+                "counts": {"entities": len(entities), "texts": len(records)},
                 "sqlite_sha256": db_hash,
             }
         ),
@@ -195,11 +236,45 @@ class PlithosRuntimeIntegrationTests(unittest.TestCase):
         self.assertEqual("Venerable Nicholas the Monk of Bulgaria", hits[0].title)
         self.assertEqual("text:nicholas-bulgaria", hits[0].segment_id)
 
-    def test_search_version_identifies_oi_specificity_ranking(self):
+    def test_search_version_identifies_multiconcept_ranking(self):
         self.assertEqual(
-            "plithos-search-c788cda3-oi-specificity1",
+            "plithos-search-c788cda3-oi-multiconcept1",
             self.store.search_version,
         )
+
+    def test_comparison_retrieval_covers_both_named_people(self):
+        result = self.store.retrieve(
+            "Compare Saint Nicholas and Saint Mary of Egypt", limit=4
+        )
+        self.assertTrue(result.sufficient, result.reason)
+        self.assertEqual(
+            ("saint nicholas", "saint mary of egypt"),
+            result.covered_concepts,
+        )
+        record_ids = [item.record_id for item in result.evidence[:2]]
+        self.assertEqual(["saint:nicholas", "saint:mary-egypt"], record_ids)
+
+    def test_three_part_question_requires_and_covers_every_concept(self):
+        result = self.store.retrieve(
+            "How are repentance, prayer, and fasting connected?", limit=4
+        )
+        self.assertTrue(result.sufficient, result.reason)
+        self.assertEqual(
+            ("repentance", "prayer", "fasting"),
+            result.covered_concepts,
+        )
+        self.assertGreaterEqual(len({item.record_id for item in result.evidence}), 2)
+
+    def test_general_question_is_not_routed_to_incidental_corpus_words(self):
+        result = self.store.retrieve("Why do leaves change color?")
+        self.assertFalse(result.sufficient)
+        self.assertEqual((), result.covered_concepts)
+        self.assertEqual([], self.store.search("Why do leaves change color?"))
+
+    def test_weather_query_is_not_routed_to_incidental_corpus_words(self):
+        result = self.store.retrieve("What is the current weather in Athens?")
+        self.assertFalse(result.sufficient)
+        self.assertEqual([], self.store.search("What is the current weather in Athens?"))
 
     def test_library_text_is_retrievable(self):
         hits = self.store.search("Incarnation")
@@ -211,6 +286,11 @@ class PlithosRuntimeIntegrationTests(unittest.TestCase):
         self.assertEqual(1, len(hits))
         self.assertTrue(hits[0].exact_text)
         self.assertEqual("John 3:16", hits[0].citation_label)
+
+        result = self.store.retrieve("Quote John 3:16 exactly.")
+        self.assertTrue(result.sufficient)
+        self.assertTrue(result.exact_text)
+        self.assertEqual("text:john316", result.evidence[0].segment_id)
 
     def test_engine_uses_installed_exact_text_instead_of_demo_abstention(self):
         engine = PrototypeEngine(

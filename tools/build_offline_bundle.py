@@ -241,12 +241,12 @@ OfflineEngine.prototype.ask = function (question) {
   if (!evidence.length) {
     return Object.assign({}, base, {
       response_class: "abstention", intent: "informational",
-      text: "The installed demonstration corpus does not contain enough evidence to answer that question. No model-memory answer was substituted.",
+      text: "I couldn't find enough reliable sources for that.",
     });
   }
   return Object.assign({}, base, {
     response_class: "evidence", intent: "informational",
-    text: "The demonstration corpus contains the passages below. This first vertical slice retrieves and verifies evidence; it does not yet generate a synthesized answer.",
+    text: "Sources found. Connect the local model to synthesize an answer.",
     evidence: evidence,
   });
 };

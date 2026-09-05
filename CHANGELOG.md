@@ -5,6 +5,30 @@ recorded here. Dates use UTC.
 
 ## Unreleased
 
+- Added deterministic concept-lane retrieval and evidence coverage checks, so
+  compound questions seek each requested subject and incidental corpus word
+  matches no longer count as adequate support.
+- Updated the grounded-generation contract to link each concise claim to its
+  own evidence references and render the verified answer with compact numbered
+  sources. Exact Scripture and other exact-text requests remain on the direct
+  retrieval path.
+- Added an optional, disabled-by-default Brave LLM Context evidence provider.
+  It runs only for Automatic sourcing after local evidence is insufficient;
+  generation stays local, credentials stay server-side, and results remain
+  outside Plithos, training, or evaluation data. The provider bundle is not
+  server-cached, and Web source text, URLs, titles, and metadata are removed
+  before a browser chat is saved.
+- Added accountless browser-local chat sessions. Users can create and switch
+  among chats, archive and restore them, or confirm permanent deletion. Session
+  messages and displayed local-corpus evidence are stored in browser
+  `localStorage`; this is a convenience store, not encrypted application
+  storage. Up to six bounded recent turns provide local conversational context;
+  conversation history is never included in a Web query.
+- Reworked the browser prototype around a quieter chat view with a source-mode
+  selector, visible response timing, collapsed source details, and collapsed
+  diagnostics. Calendar and development-evaluation panels remain available in
+  the underlying system but no longer dominate the general-purpose chat view.
+
 - Fixed the installed Plithos corpus raising `sqlite3.ProgrammingError` on
   every question: the search connection is opened on the main thread and used
   from a ThreadingHTTPServer worker on each request, so it now takes
