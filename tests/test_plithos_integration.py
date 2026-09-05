@@ -61,10 +61,14 @@ def make_install(root: Path) -> Path:
         """
     )
 
+    # Deliberately exercise both Scripture entity shapes present in the real
+    # corpus: the Septuagint export uses `scripture`, while the separately
+    # packaged New Testament currently uses `scripture_book`.
     entities = [
         ("saint:nicholas", "saint", "nicholas", 0, "St Nicholas"),
         ("work:incarnation", "work", "incarnation", 0, "On the Incarnation"),
-        ("scripture:en:43", "scripture", "en:43", 0, "John"),
+        ("scripture:en:1", "scripture", "en:1", 0, "Genesis"),
+        ("scripture:en:nt:04", "scripture_book", "en:nt:04", 0, "John"),
     ]
     for entity_id, entity_type, key, great, title in entities:
         db.execute(
@@ -111,7 +115,12 @@ def make_install(root: Path) -> Path:
             0, "source:pat", {"citation_anchor": "On the Incarnation §1"},
         ),
         (
-            "text:john316", "scripture:en:43", "scripture",
+            "text:genesis11", "scripture:en:1", "scripture",
+            "In the beginning God made the heaven and the earth.",
+            1, "source:scr", {"chapter": 1, "verse": 1, "citation_anchor": "Genesis 1:1"},
+        ),
+        (
+            "text:john316", "scripture:en:nt:04", "scripture",
             "For God so loved the world, that he gave his only begotten Son.",
             1, "source:scr", {"chapter": 3, "verse": 16, "citation_anchor": "John 3:16"},
         ),
@@ -135,8 +144,8 @@ def make_install(root: Path) -> Path:
         "schema_version": "1",
         "language": "en",
         "upstream_commit": "fixture-upstream",
-        "entity_count": "3",
-        "text_count": "3",
+        "entity_count": "4",
+        "text_count": "4",
     }
     for key, value in metadata.items():
         db.execute("INSERT INTO metadata VALUES (?,?)", (key, value))
@@ -152,7 +161,7 @@ def make_install(root: Path) -> Path:
                 "upstream_commit": "fixture-upstream",
                 "language": "en",
                 "features": ["saints", "scripture", "library"],
-                "counts": {"entities": 3, "texts": 3},
+                "counts": {"entities": 4, "texts": 4},
                 "sqlite_sha256": db_hash,
             }
         ),
@@ -182,11 +191,18 @@ class PlithosRuntimeIntegrationTests(unittest.TestCase):
         self.assertTrue(hits)
         self.assertIn("Incarnation", hits[0].title)
 
-    def test_scripture_reference_resolves_exact_text(self):
+    def test_old_testament_reference_resolves_exact_text(self):
+        hits = self.store.search("Quote Genesis 1:1 exactly.")
+        self.assertEqual(1, len(hits))
+        self.assertTrue(hits[0].exact_text)
+        self.assertEqual("Genesis 1:1", hits[0].citation_label)
+
+    def test_new_testament_scripture_book_resolves_exact_text(self):
         hits = self.store.search("Quote John 3:16 exactly.")
         self.assertEqual(1, len(hits))
         self.assertTrue(hits[0].exact_text)
         self.assertEqual("John 3:16", hits[0].citation_label)
+        self.assertEqual("text:john316", hits[0].segment_id)
 
     def test_engine_uses_installed_exact_text_instead_of_demo_abstention(self):
         engine = PrototypeEngine(
@@ -197,6 +213,7 @@ class PlithosRuntimeIntegrationTests(unittest.TestCase):
         self.assertEqual("evidence", answer.response_class)
         self.assertEqual("exact_text", answer.intent)
         self.assertTrue(answer.evidence[0].exact_text)
+        self.assertEqual("John 3:16", answer.evidence[0].citation_label)
 
     def test_modified_database_is_refused(self):
         self.store.close()
