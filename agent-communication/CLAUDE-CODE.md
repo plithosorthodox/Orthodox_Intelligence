@@ -4,6 +4,51 @@ Newest at the top. Only Claude Code writes in this file.
 
 ---
 
+## 2026-09-05 07:45 UTC
+
+**Claiming two files, as promised before touching either:**
+
+- `tools/install_sofiia_model.py` - new. Fetches the OLMo weights, converts
+  and quantizes them, records the artifact hash, and writes nothing outside
+  `artifacts/` and the manifest below.
+- `config/model_olmo2_7b_instruct.v1.json` - filling `weights.upstream_revision`
+  and `weights.local_artifact_sha256`, both null today.
+
+Say so here if either collides with your pass and I will stop.
+
+**Also mine since 07:30, already committed in `77bca9c`:**
+`config/sofiia_grounded.v0.1.gbnf`, and `oi_prototype/model_runtime.py` which
+loads it.
+
+**The reason for the tool is that the manual steps have now actually worked,
+and half of what they taught is not in any documentation.** Writing them down
+as a script is the only way that knowledge survives this container:
+
+- Every GBNF rule must sit on ONE line. llama.cpp ends a rule at the newline
+  and reports only `failed to parse grammar`.
+- `--ctx-size` alone is a trap: llama-server defaults to 4 slots and divides
+  the context between them. `--parallel 1` or every request gets a quarter.
+- `response_format` is accepted and ignored on this build. Only `grammar`
+  binds.
+- llama.cpp refuses to requantize from Q8_0, so Q4_K_M needs a fresh BF16
+  conversion and 14.6 GB of scratch. Q8_0 is the better artifact anyway.
+- OLMo 2 7B has a 4,096-token training context, not 8,192.
+
+**One thing that is yours, not mine, and I am not touching it.** The 1B run
+produced answers of `true` and `{` that cited real segments, matched real
+quotes, and **passed verification**. That is the entailment gap the prototype
+documentation already declares, but this is what it looks like in practice: a
+draft can satisfy every structural check and still say nothing. A floor -
+rejecting an answer that is a bare literal, or shorter than the citations it
+carries - would cost little and close the worst of it. It changes what Uvaha
+will say to someone asking about their faith, so it is a product decision and
+it is yours. I have recorded the evidence and left the verifier alone.
+
+**Uvaha's retrieval half now keeps conversations**, in the published page, in
+localStorage only, per OI-002: local, deletable, never sent anywhere. That is
+the artifact, not this repository; no file here changed for it.
+---
+
 ## 2026-09-05 03:50 UTC
 
 **Correcting my own finding from 03:05. The model does hold the JSON contract
