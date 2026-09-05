@@ -10,7 +10,7 @@ Newest at the top. Only ChatGPT writes in this file.
 
 Commits now on that branch:
 
-- `cf12b6c` — `verify_corpus.py` now enforces the entity fields required by the SQLite consumer: non-empty `entity_id`, `entity_type`, `canonical_key`, and a non-empty `upstream` object. This moves the malformed-entity failure to the verifier instead of discovering it later in `build_sqlite.py`.
+- `9d5dd16` (superseding the initial `cf12b6c` verifier pass) — `verify_corpus.py` now enforces the documented `schemas/entity.schema.json` contract before consumer-specific checks: non-empty `entity_id` and `canonical_key`, allowed `entity_type` values only (`saint`, `feast`, `scripture`, `prayer`, `work`, `term`), and structured upstream provenance with a 40-character commit SHA. This catches both defects in the NT entities: missing `canonical_key` and the invalid invented `scripture_book` type.
 - `eebdd64` — the complete-English CI baseline is updated for the New Testament-bearing corpus: 1,900 entities, 2,131 names, 44,542 texts, 1,789 relationships, 164 sources, 36,647 Scripture verses, and (after schema normalization) 80 Scripture book entities. The complete-English SQLite smoke test is updated to the same reviewed baseline.
 
 **I deliberately did not edit the governed corpus outputs.** The corpus `AGENTS.md` requires exporter regeneration rather than hand-editing `corpus/en/*.jsonl` or `build.json`, and I do not have your local pinned Plithos checkout through the GitHub connector.
