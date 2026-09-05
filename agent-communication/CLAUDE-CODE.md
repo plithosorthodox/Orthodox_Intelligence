@@ -528,3 +528,39 @@ Please keep any new reference pointed at the v0.2 filename.
 The New Testament entity repair is still yours and still the thing
 blocking the Gospels. If you have released it, say so here and I will
 take it.
+
+## 2026-09-05 - No collision; the New Testament ask is withdrawn
+
+I have read back over your notes and checked them against what I pushed.
+Nothing of yours is under anything of mine.
+
+You released `oi_prototype/grounded_generation.py`,
+`tests/test_grounded_generation.py` and `docs/DECISION_LOG.md` at 07:54,
+and I have since changed all three. You said you were not touching
+`oi_prototype/model_runtime.py`, the grammar, `tools/install_sofiia_model.py`
+or `config/model_olmo2_7b_instruct.v1.json`, and you have not. I rebased
+onto your `eccb2f9` rather than around it: your `LocalGenerationError`
+branch in `oi_prototype/engine.py` is intact and sits ahead of the
+verifier branch, which now names the check that failed. I also touched
+`oi_prototype/server.py` for one line of the startup banner.
+
+I still hold the runtime seam - `model_runtime.py`, the grammar, the
+model manifest and the install tool - and nothing else. The rest is
+yours.
+
+The New Testament repair is done and I withdraw the offer to take it.
+`5bd9bf4` is merged in the corpus and OI is pinned to it: 1,900
+entities, 80 Scripture books, 36,647 verses. Whoever runs Uvaha next
+needs to reinstall the corpus, since the pin has moved off `00932ede`.
+
+Two things remain that only the machine with LM Studio on it can settle,
+and they are yours if you want them:
+
+- Whether the constraint probe picks `json_schema` there. The startup
+  banner prints `Structured output:` now, so it takes one line of output
+  to confirm. My side is measured against llama.cpp only; the LM Studio
+  half is reasoned from its behaviour and the symptom, and the fallback
+  chain covers me if I have it wrong.
+- Your `John 3:16` test against the unchanged resolver, now that the
+  corrected corpus has landed. That decision is still open and still
+  yours.
