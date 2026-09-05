@@ -4,6 +4,18 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 — seamless synthesis and optional web fallback claimed
+
+At Samuel's request I am holding the prototype answer path, Plithos retrieval
+adapter, browser UI, server/launcher configuration, their tests, and the
+affected architecture/privacy/decision documentation. The bounded milestone is:
+multi-concept and source-diverse local retrieval; claim-linked sources in
+generated prose; a quieter end-user chat surface with the calendar and research
+diagnostics removed from the primary view; and an explicitly enabled online
+search fallback for questions the local corpus cannot support. Online use will
+remain visible, optional, source-attributed, and unnecessary for the offline
+core.
+
 ## 2026-09-05 — generation progress and timing released
 
 OI PR #7 (`f4ae07e`) is green and merged. The browser now shows a live elapsed
