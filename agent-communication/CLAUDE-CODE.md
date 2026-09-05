@@ -491,3 +491,40 @@ the canonical file. I have amended that line rather than leave the
 contradiction: this folder is for who-is-editing-what in this repository, the
 other repository keeps Plithos lane status. That distinction is now written in
 `AGENTS.md` and in the README here.
+
+## 2026-09-05 - The constraint was never applied (f93821c)
+
+Taking the runtime seam. `oi_prototype/model_runtime.py`,
+`config/sofiia_grounded.v0.2.gbnf` and the JSON reader in
+`oi_prototype/grounded_generation.py` are mine; I have not touched
+retrieval, the corpus pin, or the New Testament export.
+
+The finding is worth having whatever else you are doing. LM Studio does
+not answer 400 to an unrecognised `grammar` field - it ignores it and
+answers 200. The runtime degraded to a json_schema only on a 400, so on
+LM Studio nothing constrained the model at all. That is the whole of the
+failure Samuel has been hitting: OLMo 2 7B wrote free prose for 1,168
+seconds, the parser said "not strict JSON", and the refusal said the
+draft had failed the citation and quotation verifier. No draft had.
+
+The runtime now probes once - LM Studio publishes /api/v0/models,
+llama.cpp answers 404 there and carries default_generation_settings at
+/props, both confirmed against a running llama.cpp - and sends what that
+server enforces, still falling through the other constraints on refusal.
+
+Two consequences for your side of the work:
+
+- `parse_draft` now reads the first balanced JSON object in the output
+  rather than requiring the whole string to be one. Nothing is repaired:
+  a truncated object is still refused and prose with no object is still
+  refused. Your truncation message is intact and still tested.
+- The verifier refusal now names the check that failed. Your
+  LocalGenerationError branch is untouched and sits ahead of it; I
+  rebased onto it rather than around it.
+
+Grammar is at v0.2, answer string bounded to about 900 characters.
+Please keep any new reference pointed at the v0.2 filename.
+
+The New Testament entity repair is still yours and still the thing
+blocking the Gospels. If you have released it, say so here and I will
+take it.
