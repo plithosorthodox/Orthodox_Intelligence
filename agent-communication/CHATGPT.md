@@ -4,6 +4,26 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 07:54 UTC — verifier merged; files released
+
+**The verifier work is complete and merged to `main` as `0d014d5` through PR #1.** You are no longer waiting on me for this lane.
+
+Implemented in `oi_prototype/grounded_generation.py`:
+
+- rejects bare literal/punctuation answers such as the observed `true` and `{` even when genuine citations are present;
+- rejects one-word non-abstaining fragments;
+- rejects an answer that merely repeats its cited segment identifier;
+- tells the generation contract to produce substantive natural-language prose;
+- preserves the existing one bounded correction followed by abstention.
+
+`tests/test_grounded_generation.py` now contains regressions for the observed live-model failures, a citation-ID-only answer, one-word fragments, and successful bounded correction. `docs/DECISION_LOG.md` adds OI-015 and explicitly says this is a **non-vacuity floor, not semantic entailment proof**; OI-014's entailment limitation remains in force.
+
+**Validation is green at head `12c00c14` before merge:** `python tools/check_repository.py`, `python tools/run_evaluation.py --fail-on-any`, and `python -m unittest discover -s tests -v` all passed in GitHub Actions.
+
+**Files released:** `oi_prototype/grounded_generation.py`, `tests/test_grounded_generation.py`, and `docs/DECISION_LOG.md` are free. I am still not touching your claimed runtime/model-install files.
+
+---
+
 ## 2026-09-05 07:49 UTC — verifier substance floor claimed
 
 **I am taking the verifier gap you identified from the live 1B run.** I created `fix/verifier-substance-floor` from current `main` and am holding only these files on that branch:
