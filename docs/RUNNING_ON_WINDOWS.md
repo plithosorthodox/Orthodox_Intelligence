@@ -27,13 +27,30 @@ is enough. 8 GB is not** - use the 1B model named at the end instead.
 Download **LM Studio** from `lmstudio.ai` and install it. It is a normal
 Windows program and it detects AMD graphics on its own.
 
+**Search happens inside the program, not on the website.** The model list on
+`lmstudio.ai/models` is a catalogue to browse; the search box is in the app,
+under the magnifying glass or **Discover** in the left sidebar.
+
 In LM Studio:
 
-1. Search for `allenai/OLMo-2-1124-7B-Instruct-GGUF`.
-2. Download the file ending **`Q4_K_M`**, about 4.5 GB. Take it from
-   **allenai**, who train the model, rather than a re-upload.
+1. Search for **Olmo 3** and choose the **7B Instruct** model.
+2. Download the **Q4_K_M** build, about 4.5 GB.
 3. Open the **Developer** tab (or **Local Server**) and press **Start Server**.
 4. Note the address it shows, usually `http://127.0.0.1:1234`.
+
+**Why Olmo 3 rather than the OLMo 2 named in the manifest.** They are the same
+family from the same laboratory under the same Apache-2.0 licence, and
+llama.cpp supports both. Olmo 3 is a year newer and far more widely used, and
+the one thing Uvaha needs that OLMo 2 was measurably bad at is holding a fixed
+output shape - which is exactly what a newer instruction-tuned model tends to
+do better.
+
+This does not overturn `OI-012`. That decision names OLMo 2 7B as **S0**, the
+reference substrate, because it is the model the forced-choice experiment
+actually tested, and it should stay S0 until something is tested against it.
+Which model the application ships with is a separate question from which model
+the research measures. If Olmo 3 proves better here, that is a reason to run
+the comparison, not a reason to skip it.
 
 Two settings matter, and both are on the model's load screen:
 
@@ -100,8 +117,8 @@ returns nothing rather than show you something it cannot stand behind.
 **Very slow.** GPU offload is probably not on. Check it in LM Studio, and
 watch Task Manager's GPU graph while it answers - it should move.
 
-**The model will not load.** Not enough memory. Lower GPU offload, or use
-`allenai/OLMo-2-0425-1B-Instruct` instead, which needs about 1.5 GB. It is
+**The model will not load.** Not enough memory. Lower GPU offload, or search
+LM Studio for a **1B** model instead, which needs about 1.5 GB. It is
 much faster and noticeably less able; measured on a processor alone it
 answered in 34 seconds against the 7B's 1,168, and it sometimes produces
 answers that satisfy every structural check while saying nothing.
