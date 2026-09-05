@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 
@@ -95,6 +96,34 @@ def _validate_loopback_endpoint(endpoint: str) -> str:
     return f"http://{parsed.hostname if parsed.hostname != '::1' else '[::1]'}:{port}"
 
 
+_GROUNDED_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["answer", "citations", "quotes", "abstain"],
+    "properties": {
+        "answer": {"type": "string"},
+        "citations": {"type": "array", "items": {"type": "string"}},
+        "quotes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["segment_id", "text"],
+                "properties": {
+                    "segment_id": {"type": "string"},
+                    "text": {"type": "string"},
+                },
+            },
+        },
+        "abstain": {"type": "boolean"},
+    },
+}
+
+
+class _GrammarRejected(Exception):
+    """The server refused this constraint, not the request."""
+
+
 class LlamaCppServerRuntime:
     """Development-only adapter for a local llama.cpp OpenAI-compatible server."""
 
@@ -128,6 +157,26 @@ class LlamaCppServerRuntime:
             "production_runtime": False,
         }
 
+    def _post(self, body: dict[str, Any]) -> dict[str, Any]:
+        encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
+        http_request = Request(
+            self.endpoint + "/v1/chat/completions",
+            data=encoded,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(http_request, timeout=self.timeout_seconds) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            # A 400 while a constraint is attached means the server did not
+            # understand the constraint; anything else is a real failure.
+            if exc.code == 400 and ("grammar" in body or "response_format" in body):
+                raise _GrammarRejected() from exc
+            raise ModelRuntimeError("local generation request failed") from exc
+        except Exception as exc:
+            raise ModelRuntimeError("local generation request failed") from exc
+
     def generate(self, request: GenerationRequest) -> GenerationResult:
         if not request.system_prompt.strip() or not request.user_prompt.strip():
             raise ModelRuntimeError("generation requires non-empty system and user prompts")
@@ -158,18 +207,27 @@ class LlamaCppServerRuntime:
             # because a runtime without grammar support ignores this field.
             "grammar": self.grammar,
         }
-        encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
-        http_request = Request(
-            self.endpoint + "/v1/chat/completions",
-            data=encoded,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
         try:
-            with urlopen(http_request, timeout=self.timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except Exception as exc:  # urllib surfaces several unrelated transport errors
-            raise ModelRuntimeError("local llama.cpp generation request failed") from exc
+            payload = self._post(body)
+        except _GrammarRejected:
+            # Not every local server speaks llama.cpp's grammar field. LM Studio
+            # and others take an OpenAI-style json_schema instead, and a server
+            # that understands neither still has the schema in the system
+            # prompt. Degrade in that order rather than fail: a constrained
+            # runtime is better than an unconstrained one, and an unconstrained
+            # one is better than no answer, because the verifier is what
+            # actually protects the reader either way.
+            body.pop("grammar", None)
+            body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "sofiia_grounded", "strict": True,
+                                "schema": _GROUNDED_SCHEMA},
+            }
+            try:
+                payload = self._post(body)
+            except _GrammarRejected:
+                body.pop("response_format", None)
+                payload = self._post(body)
 
         try:
             text = payload["choices"][0]["message"]["content"]
