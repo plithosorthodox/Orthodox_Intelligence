@@ -48,9 +48,30 @@ function addUserMessage(text) {
   messagesNode.append(article);
 }
 
-function addAnswer(answer) {
+function formatElapsed(seconds) {
+  const whole = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(whole / 60);
+  const remainder = whole % 60;
+  return minutes ? `${minutes}m ${String(remainder).padStart(2, "0")}s` : `${remainder}s`;
+}
+
+function addThinkingMessage() {
+  const article = element("article", "message assistant thinking");
+  article.setAttribute("role", "status");
+  const label = element("p", "classification", "Sofiia is thinking");
+  const timer = element("p", "elapsed", "Elapsed: 0s");
+  article.append(label, timer);
+  messagesNode.append(article);
+  messagesNode.scrollTop = messagesNode.scrollHeight;
+  return {article, timer};
+}
+
+function addAnswer(answer, elapsedSeconds) {
   const article = element("article", "message assistant");
   article.append(element("p", "classification", `${answer.response_class} · ${answer.intent}`));
+  if (elapsedSeconds !== undefined) {
+    article.append(element("p", "elapsed", `Completed in ${formatElapsed(elapsedSeconds)}`));
+  }
   article.append(element("p", "", answer.text));
   for (const evidence of answer.evidence || []) {
     const card = element("section", "evidence-card");
@@ -114,12 +135,22 @@ form.addEventListener("submit", async (event) => {
   addUserMessage(question);
   questionNode.value = "";
   submitNode.disabled = true;
+  questionNode.disabled = true;
+  const started = performance.now();
+  const thinking = addThinkingMessage();
+  const timerId = window.setInterval(() => {
+    thinking.timer.textContent = `Elapsed: ${formatElapsed((performance.now() - started) / 1000)}`;
+  }, 1000);
   try {
-    addAnswer(await request("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({question})}));
+    const answer = await request("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({question})});
+    addAnswer(answer, (performance.now() - started) / 1000);
   } catch (error) {
-    addAnswer({response_class: "error", intent: "system", text: error.message, evidence: []});
+    addAnswer({response_class: "error", intent: "system", text: error.message, evidence: []}, (performance.now() - started) / 1000);
   } finally {
+    window.clearInterval(timerId);
+    thinking.article.remove();
     submitNode.disabled = false;
+    questionNode.disabled = false;
     questionNode.focus();
   }
 });
@@ -160,7 +191,7 @@ request("/api/status")
       if (status.generative_model_loaded) {
         statusNode.textContent = `Sofiia v0.1 ready · ${status.entity_count.toLocaleString()} Plithos entities`;
         corpusDescription.textContent = "Uvaha is using the verified local English Plithos package and the selected local Sofiia v0.1 model configuration. Retrieval, generation, citation checks, quotation checks, calendar reckoning, and content-hash verification remain on this device.";
-        welcomeMessage.textContent = "Ask Sofiia about the installed Plithos material. A generated answer is shown only after its cited segments and direct quotations pass the local verifier.";
+        welcomeMessage.textContent = "Ask an open-ended informational question to receive an OLMo-generated answer grounded in installed Plithos material. Exact-text requests and identity or pastoral boundaries remain deterministic by design. Generated answers appear only after their cited segments and direct quotations pass the local verifier.";
         submitNode.textContent = "Ask Sofiia";
       } else {
         statusNode.textContent = `Plithos ready · ${status.entity_count.toLocaleString()} entities · Sofiia not connected`;

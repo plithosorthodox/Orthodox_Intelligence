@@ -215,8 +215,14 @@ class ServerTests(unittest.TestCase):
     def test_visible_interface_loads(self):
         with urllib.request.urlopen(self.base_url + "/", timeout=3) as response:
             html = response.read().decode("utf-8")
+        with urllib.request.urlopen(self.base_url + "/app.js", timeout=3) as response:
+            javascript = response.read().decode("utf-8")
         self.assertIn("A working vertical slice", html)
         self.assertIn("Run behavioral evaluation", html)
+        self.assertIn("open-ended informational questions are generated", html)
+        self.assertIn("Sofiia is thinking", javascript)
+        self.assertIn("Completed in", javascript)
+        self.assertIn("questionNode.disabled = true", javascript)
 
 
 
