@@ -63,6 +63,13 @@ def make_install(root: Path) -> Path:
 
     entities = [
         ("saint:nicholas", "saint", "nicholas", 0, "St Nicholas"),
+        (
+            "saint:nicholas-bulgaria",
+            "saint",
+            "nicholas-bulgaria",
+            0,
+            "Venerable Nicholas the Monk of Bulgaria",
+        ),
         ("work:incarnation", "work", "incarnation", 0, "On the Incarnation"),
         ("scripture:en:43", "scripture", "en:43", 0, "John"),
     ]
@@ -106,6 +113,11 @@ def make_install(root: Path) -> Path:
             0, "source:hag", {},
         ),
         (
+            "text:nicholas-bulgaria", "saint:nicholas-bulgaria", "hagiography",
+            "Venerable Nicholas the Monk of Bulgaria was a soldier who served in the imperial army during the campaign led by Emperor Nicephorus into Bulgaria in 811.",
+            0, "source:hag", {},
+        ),
+        (
             "text:incarnation", "work:incarnation", "patristic",
             "The Incarnation is treated here as the Word taking flesh for our salvation.",
             0, "source:pat", {"citation_anchor": "On the Incarnation §1"},
@@ -135,8 +147,8 @@ def make_install(root: Path) -> Path:
         "schema_version": "1",
         "language": "en",
         "upstream_commit": "fixture-upstream",
-        "entity_count": "3",
-        "text_count": "3",
+        "entity_count": "4",
+        "text_count": "4",
     }
     for key, value in metadata.items():
         db.execute("INSERT INTO metadata VALUES (?,?)", (key, value))
@@ -152,7 +164,7 @@ def make_install(root: Path) -> Path:
                 "upstream_commit": "fixture-upstream",
                 "language": "en",
                 "features": ["saints", "scripture", "library"],
-                "counts": {"entities": 3, "texts": 3},
+                "counts": {"entities": 4, "texts": 4},
                 "sqlite_sha256": db_hash,
             }
         ),
@@ -176,6 +188,18 @@ class PlithosRuntimeIntegrationTests(unittest.TestCase):
         hits = self.store.search("Nikola")
         self.assertTrue(hits)
         self.assertEqual("St Nicholas", hits[0].title)
+
+    def test_specific_same_name_query_prefers_matching_title_terms(self):
+        hits = self.store.search("Who was Nicholas the Monk of Bulgaria?")
+        self.assertTrue(hits)
+        self.assertEqual("Venerable Nicholas the Monk of Bulgaria", hits[0].title)
+        self.assertEqual("text:nicholas-bulgaria", hits[0].segment_id)
+
+    def test_search_version_identifies_oi_specificity_ranking(self):
+        self.assertEqual(
+            "plithos-search-c788cda3-oi-specificity1",
+            self.store.search_version,
+        )
 
     def test_library_text_is_retrievable(self):
         hits = self.store.search("Incarnation")
