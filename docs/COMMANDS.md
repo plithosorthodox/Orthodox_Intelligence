@@ -57,7 +57,7 @@ cd ~/Orthodox_Intelligence
 python tools/install_plithos_corpus.py --corpus-repo ../plithos_corpus
 ```
 
-It should report roughly 1,873 entities and 36,585 texts. **If it refuses,
+It should report 1,900 entities and 44,542 texts. **If it refuses,
 that is the check working** - it will not install a corpus that is not the one
 this build was pinned to.
 
