@@ -49,8 +49,8 @@ Validation at this checkpoint:
 - `python tools/check_repository.py` — passed;
 - `python tools/run_evaluation.py --fail-on-any` — 25/25 passed, zero critical
   failures;
-- `python -m unittest discover -s tests -v` — 110 passed, 2 skipped only because
-  Node is not installed;
+- `python -m unittest discover -s tests -v` — 110 discovered: 108 passed and 2
+  skipped only because Node is not installed;
 - `git diff --check` — no whitespace errors (only normal Windows LF/CRLF
   warnings);
 - installed-corpus manual check — `Saint Nicholas of Myra` and the follow-up
