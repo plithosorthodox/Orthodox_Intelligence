@@ -118,3 +118,31 @@ it. In LM Studio, on that model's settings page:
    same model from a different publisher; a truncated download fails this way.
 3. **Uvaha does not need the model.** Run it without `--model-endpoint` and
    the corpus, the calendar, the boundaries and exact-text retrieval all work.
+
+## Every answer comes back as a refusal
+
+If Uvaha answers each question with "Sofiia generated a draft, but it did
+not pass the local citation and quotation verifier", read the line the
+refusal now ends with. It names the check that failed, and the two cases
+mean different things.
+
+*Reason: model output was not strict JSON* means nothing is holding the
+model to a shape. Look at the two lines the server prints at startup:
+
+    Model: Sofiia v0.1 · llama.cpp-loopback-development · loopback only
+    Structured output: json_schema
+
+`Structured output` must say `grammar` or `json_schema`. If it says
+`unknown until the model server answers`, the model server was not
+running when Uvaha started: start LM Studio's local server first, then
+start Uvaha.
+
+*Reason: answer cited a segment that was not retrieved*, or a reason
+naming a quotation, means the model is being held to the shape and is
+still getting the substance wrong. That is the verifier doing its work.
+A larger model helps; nothing needs fixing.
+
+Update first, in any case:
+
+    cd ~/Orthodox_Intelligence
+    git pull
