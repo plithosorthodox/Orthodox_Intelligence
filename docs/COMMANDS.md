@@ -180,7 +180,7 @@ The folder can be copied to another machine as it stands.
 The corpus travels inside the bundle, so install it before building if you
 have not:
 
-    python tools/install_plithos_corpus.py
+    python tools/install_plithos_corpus.py --corpus-repo ../plithos_corpus
 
 **Do not hand this folder to anyone else.** The installed corpus carries
 material whose redistribution rights have not been reviewed. It is built for
