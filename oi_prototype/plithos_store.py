@@ -69,13 +69,19 @@ class PlithosEvidenceStore:
         )
         self.search_version = "plithos-search-c788cda3"
 
+        # The corpus has two historical Scripture entity shapes: the original
+        # Septuagint export uses ``scripture`` and the separately packaged New
+        # Testament export uses ``scripture_book``. Both are Scripture for exact
+        # reference resolution and must be kept out of generic named-exact-text
+        # handling.
         self._scripture_books: list[tuple[str, str]] = []
         for row in self._db.execute(
             """
             SELECT e.entity_id, n.name
               FROM entities e
               JOIN names n ON n.entity_id=e.entity_id
-             WHERE e.entity_type='scripture' AND n.name_type='canonical'
+             WHERE e.entity_type IN ('scripture', 'scripture_book')
+               AND n.name_type='canonical'
              ORDER BY length(n.name) DESC, n.name
             """
         ):
@@ -89,7 +95,7 @@ class PlithosEvidenceStore:
               JOIN entities e ON e.entity_id=t.entity_id
               JOIN names n ON n.entity_id=e.entity_id
              WHERE t.exact_text=1
-               AND e.entity_type<>'scripture'
+               AND e.entity_type NOT IN ('scripture', 'scripture_book')
                AND n.name_type='canonical'
              ORDER BY length(n.name) DESC, n.name
             """
