@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "corpus_repository": "plithosorthodox/plithos_corpus",
-  "corpus_commit": "00932ede1e4c1af6f5841278078508a36cd6de33",
+  "corpus_commit": "5bd9bf4ca959642ee23dab9808722506ea9b4bce",
   "upstream_repository": "plithosorthodox/plithos.org",
   "upstream_commit": "10b8e63b157765ed902e7dfe2f7c01f1c390deb9",
   "language": "en",
@@ -15,25 +15,25 @@
   "counts": {
     "english_lives": 1456,
     "english_terms": 177,
-    "entities": 1873,
-    "names": 2104,
+    "entities": 1900,
+    "names": 2131,
     "relationships": 1789,
-    "sources": 163,
-    "texts": 36585
+    "sources": 164,
+    "texts": 44542
   },
   "summary": {
     "english_prayers": 100,
-    "english_scripture_books": 53,
-    "english_scripture_verses": 28690,
+    "english_scripture_books": 80,
+    "english_scripture_verses": 36647,
     "english_work_units": 4818,
     "english_works": 87
   },
   "file_sha256": {
-    "entities.jsonl": "f995adce45cd3a602c26cac10b48a2518325241b6c2cf90086af188111b76ad2",
-    "names.jsonl": "7cc36db20267059d085500b1456ad942262be447c87ff03cd2ef50f340265370",
+    "entities.jsonl": "111e49800c1224db0fea9e6654add38c7d3f71f3be18be43f1ca513bffeabc6e",
+    "names.jsonl": "cc652b748715c075b83063f2631b450c2a91fa4865c55cd3abfe37b7656f4808",
     "relationships.jsonl": "16a329cdc9b4cc12d968027ed40e264f40dfe02e1181619ca845b7251f13030c",
-    "sources.jsonl": "4479fa8ddd1b20bba3abb862eda6fafc10bbb37275e3708c7c5a8ac504fcfe72",
-    "texts.jsonl": "4ce787364ae0e17234ee4ac7a1d251738b0b8ac68877b2f970257c6ff27cbf55"
+    "sources.jsonl": "882d3e818f63b2e86b8dfcc81094a1b028635a5304bd401028decde715bc0f31",
+    "texts.jsonl": "7c179e550c8ed9447f941a305ad66d866eecc2493f28663800a63fbe3ba8f8f2"
   },
   "source_inventory": {
     "file": "sources.jsonl",
