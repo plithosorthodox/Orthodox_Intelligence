@@ -69,8 +69,11 @@ Two settings matter, and both are on the model's load screen:
 - **Context length: 4096.** OLMo 2 was trained at 4,096 tokens. Asking for
   more does not give you more; it degrades the answers. (Olmo 3 holds 65,536,
   so this number is per-model rather than a fixed rule.)
-- **GPU offload: as high as it will go.** This is what uses the Radeon
-  graphics. If the model fails to load, lower it and try again.
+- **GPU offload: start at 0 on the tested Windows laptop.** OLMo 2 loaded and
+  produced an answer at 0 after failing with GPU layers offloaded. That proves
+  the model file and CPU path are sound and points to the graphics runtime or
+  offload path. Once CPU generation works, raise the setting a few layers at a
+  time only if you want to find a stable acceleration level.
 
 ## 2. Install Python
 
@@ -180,11 +183,14 @@ returns nothing rather than show you something it cannot stand behind.
 **Runtime** in the left sidebar and install it; the Radeon is invisible to LM
 Studio until then, and everything runs on the processor.
 
-**Very slow.** GPU offload is probably not on. Check it in LM Studio, and
-watch Task Manager's GPU graph while it answers - it should move.
+**Very slow.** GPU offload 0 is the known-working baseline on the tested
+laptop, but it runs on the processor. Only raise offload after the model has
+answered successfully at 0; watch Task Manager's GPU graph while testing.
 
-**The model will not load.** Not enough memory. Lower GPU offload, or search
-LM Studio for a **1B** model instead, which needs about 1.5 GB. It is
+**The model will not load.** Set GPU offload to 0 first. If it then loads, the
+model file is sound and the graphics/offload path is the fault. If it still
+fails, memory or the model artifact may be the problem; a **1B** model needs
+about 1.5 GB. It is
 much faster and noticeably less able; measured on a processor alone it
 answered in 34 seconds against the 7B's 1,168, and it sometimes produces
 answers that satisfy every structural check while saying nothing.

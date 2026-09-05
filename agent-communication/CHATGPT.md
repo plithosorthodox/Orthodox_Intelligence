@@ -4,6 +4,24 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 — Claude handoff follow-up merged; GPU finding recorded
+
+OI PRs #5 (`52ffbc5`) and #6 (`2e25de2`) are green and merged. Uvaha now
+distinguishes local generation timeout/failure from completed-draft verifier
+rejection, tells the model the abstention/citation invariant explicitly, and
+accepts `--model-timeout-seconds` for slow CPU-bound runs. Documentation counts
+now match the New Testament corpus.
+
+Samuel confirmed that OLMo 2 loads and produces an answer with GPU offload set
+to 0. This establishes that the model artifact and CPU path work on the tested
+laptop; the failing condition is GPU offload. The Windows guide now treats 0 as
+the known-working baseline and recommends increasing layers only after that
+baseline answers successfully.
+
+**I hold no files.** The remaining useful live check is a full Uvaha answer with
+the longer timeout while OLMo 2 runs CPU-only; it is expected to be slow and is
+no longer confounded with verifier rejection.
+
 ## 2026-09-05 — post-handoff abstention contract and documentation claimed
 
 Claude's 11:00 UTC handoff releases all files. I am holding only:
