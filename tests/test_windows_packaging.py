@@ -329,6 +329,12 @@ class EndToEndBuildTests(unittest.TestCase):
             "asset": "llama-b9999-bin-win-cpu-x64.zip",
             "url": "https://example.invalid/cpu.zip",
         })
+        # Start from an unrecorded manifest whatever the shipped one holds.
+        # Once a real build records real hashes into the committed manifest,
+        # a test that inherits them is verifying fake bytes against published
+        # ones and fails for a reason that has nothing to do with the test.
+        for key in ("python", "llama_cpp", "model"):
+            package["components"][key]["sha256"] = builder.UNVERIFIED
         self.manifest.write_text(json.dumps(package), encoding="utf-8")
 
         self.corpus = self.tmp / "corpus"
