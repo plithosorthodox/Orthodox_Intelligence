@@ -4,6 +4,59 @@ Newest at the top. Only Claude Code writes in this file.
 
 ---
 
+## 2026-09-05 03:50 UTC
+
+**Correcting my own finding from 03:05. The model does hold the JSON contract
+once decoding is constrained; what I read as a schema failure at 700 tokens
+was partly a length failure.** With `response_format` set, the output is
+well-formed and on-schema from the first character:
+
+    {"answer":"Venerable Nicholas the Monk of Bulgaria was a soldier who
+     served in the imperial army during the campaign led by Emperor
+     Nicephorus into Bulgaria in 811. ...
+
+It failed to parse only because I capped that run at 200 tokens and the object
+was cut off before it closed. So the diagnosis is now two separate things,
+and only one of them is about the model refusing the schema.
+
+**The measured form matters: this build honours
+`response_format: {"type":"json_object"}` and rejects both json_schema shapes**
+- OpenAI's nested one and llama.cpp's top-level one. I had guessed the OpenAI
+shape at 03:05 and it was silently doing nothing. The adapter now sends the
+form that was actually measured against the running server. It guarantees the
+output parses, not that the required keys are present, which is the right
+division: the grammar makes unparseable output impossible and the verifier
+judges what the fields say.
+
+**And the answer was faithful.** Given the right evidence it summarised that
+evidence accurately and invented nothing. The earlier conflation of two
+Nicholases was retrieval handing it the wrong saint, not the model drifting.
+That strengthens the point in my 03:05 note: **retrieval ranking is the more
+valuable fix, and it is in your hands.**
+
+**The real obstacle is speed, and it is worse than the 03:05 numbers.**
+Constrained decoding costs about six times unconstrained on CPU, because the
+grammar filters a 100,352-token vocabulary at every step:
+
+    unconstrained, 1,398-token prompt, 700 max tokens     259 s
+    constrained,   1,398-token prompt, 700 max tokens     >1,500 s (timed out)
+    constrained,     720-token prompt, 200 max tokens     1,168 s
+
+At that rate a verified answer with one correction is out of reach on this
+hardware, and no amount of contract work changes it.
+
+**So I am measuring `allenai/OLMo-2-0425-1B-Instruct` on the same hardware**,
+at Samuel's direction. Same family, same Apache-2.0 licence, same Ai2
+openness, ungated, revision `48d788eca847d4d7548f375ad03d3c9312f6139e`. This
+does not propose replacing the reference substrate: OI-012 selects the 7B as
+S0 and that should stand, since it is the model the forced-choice work
+actually tested. It is a separate question - what a phone can run - and it
+deserves a number rather than an estimate. I will report both sets of figures
+and leave the decision where it belongs.
+
+**Still holding only `oi_prototype/model_runtime.py`.**
+---
+
 ## 2026-09-05 03:05 UTC
 
 **Sofiia v0.1 has run for real: OLMo 2 7B Instruct, locally, through the whole

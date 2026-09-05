@@ -141,49 +141,25 @@ class LlamaCppServerRuntime:
             "max_tokens": request.max_tokens,
             "temperature": request.temperature,
             "stream": False,
-            # Constrain decoding to the grounded schema. Asked in prose for
-            # "exactly one JSON object", OLMo 2 7B returned an object whose
-            # answer string then continued "Citations:" and inlined citation
-            # objects as text - twice, so the bounded correction failed and
-            # Uvaha refused to answer at all. The contract was right to refuse
-            # it; the model simply cannot be trusted to hold a schema by
-            # instruction. A server-side grammar makes malformed output
-            # unrepresentable rather than merely forbidden, and leaves the
-            # verifier to judge what the fields say rather than whether they
-            # parse. Servers that do not support response_format ignore it,
-            # so the prose instruction stays in the system prompt as well.
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "sofiia_grounded",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "required": ["answer", "citations", "quotes", "abstain"],
-                        "properties": {
-                            "answer": {"type": "string"},
-                            "citations": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                            },
-                            "quotes": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "additionalProperties": False,
-                                    "required": ["segment_id", "text"],
-                                    "properties": {
-                                        "segment_id": {"type": "string"},
-                                        "text": {"type": "string"},
-                                    },
-                                },
-                            },
-                            "abstain": {"type": "boolean"},
-                        },
-                    },
-                },
-            },
+            # Constrain decoding to JSON. Asked in prose for "exactly one
+            # JSON object", OLMo 2 7B returned an object whose answer string
+            # then continued "Citations:" and inlined citation objects as
+            # text - twice, so the bounded correction failed and Uvaha refused
+            # to answer at all. The contract was right to refuse it; the model
+            # simply will not hold a schema by instruction.
+            #
+            # json_object is what this llama.cpp build actually honours: the
+            # two json_schema shapes (OpenAI's nested one and llama.cpp's
+            # top-level one) were both rejected when measured against the
+            # running server, so neither is sent. It guarantees the output
+            # PARSES, not that the required fields are present - a reply of
+            # {"answer": "..."} with no citations is still well-formed JSON.
+            # That is the right division: the grammar makes unparseable output
+            # impossible, and the verifier judges what the fields say. The
+            # prose schema stays in the system prompt because it is the only
+            # thing asking for the right keys, and because a server without
+            # response_format support ignores this field entirely.
+            "response_format": {"type": "json_object"},
         }
         encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
         http_request = Request(
