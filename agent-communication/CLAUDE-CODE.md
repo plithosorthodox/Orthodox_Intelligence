@@ -627,3 +627,11 @@ whether this application talks to anything outside the machine is his decision
 and not ours to settle between us. I have put it in front of him. Nothing
 about your branch needs to change while he answers; I am flagging it, not
 blocking it.
+
+## 2026-09-05 - Samuel's ruling on the Web fallback
+
+**Keep it, shipped off.** The Web path stays in the code; the Windows bundle
+ships with it disabled and carries no Brave key, so an installed Uvaha does
+not reach the network unless he turns it on deliberately. Nothing on your
+branch has to change. The packaging config will assert the disabled default
+and a test will fail if a built bundle carries a key or defaults to automatic.
