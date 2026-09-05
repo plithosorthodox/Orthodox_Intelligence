@@ -533,6 +533,17 @@ function describeStatus(status, webAvailable) {
   statusNode.classList.add("ready");
 }
 
+// Enter sends, shift with it makes a new line. Every assistant a reader has
+// used works that way, and a composer that needs the mouse to send makes the
+// application feel like a form rather than a conversation.
+questionNode.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.isComposing) return;   // mid-composition in an IME, not a send
+  event.preventDefault();
+  if (typeof form.requestSubmit === "function") form.requestSubmit();
+  else form.dispatchEvent(new Event("submit", {cancelable: true}));
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (pendingRequest) return;
@@ -598,12 +609,6 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !sessionDrawer.hidden) closeSessionDrawer();
 });
 
-for (const button of document.querySelectorAll("[data-question]")) {
-  button.addEventListener("click", () => {
-    questionNode.value = button.dataset.question;
-    questionNode.focus();
-  });
-}
 
 ensureActiveSession();
 saveSessionState();
