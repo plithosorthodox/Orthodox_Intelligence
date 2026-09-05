@@ -78,6 +78,94 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("redistribution", self.package["audience_note"])
 
 
+VULKAN_MANIFEST = ROOT / "config" / "windows_package_olmo2_q4km_vulkan.v0.1.json"
+
+
+class VulkanPackageTests(unittest.TestCase):
+    """The speed variant, kept beside the CPU package rather than over it.
+
+    A bundle that starts slowly beats one that does not start, so the known
+    working CPU manifest stays and the builder's --manifest chooses between
+    them. Nothing here proves GPU inference: that is llama-server naming a
+    device and a non-zero layer count on the machine, and the manifest says so.
+    """
+
+    def setUp(self):
+        self.cpu = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        self.vulkan = json.loads(VULKAN_MANIFEST.read_text(encoding="utf-8"))
+
+    def test_it_asks_for_the_whole_model_on_the_gpu(self):
+        flags = self.vulkan["components"]["llama_cpp"]["server_flags"]
+        self.assertIn("--n-gpu-layers all", flags)
+
+    def test_the_flags_that_the_runtime_depends_on_survive(self):
+        flags = self.vulkan["components"]["llama_cpp"]["server_flags"]
+        for required in ("--ctx-size 4096", "--parallel 1", "--temp 0"):
+            self.assertIn(required, flags)
+
+    def test_it_names_the_vulkan_asset_from_the_same_pinned_release(self):
+        cpu, vulkan = self.cpu["components"]["llama_cpp"], self.vulkan["components"]["llama_cpp"]
+        self.assertEqual("vulkan", vulkan["backend"])
+        self.assertEqual("cpu", cpu["backend"])
+        self.assertEqual(cpu["release_tag"], vulkan["release_tag"])
+        self.assertIn("vulkan", vulkan["asset"])
+        self.assertTrue(vulkan["url"].startswith("https://github.com/ggml-org/llama.cpp/"))
+        self.assertIn(vulkan["asset"], vulkan["url"])
+
+    def test_its_hash_is_recorded_and_its_provenance_is_stated(self):
+        vulkan = self.vulkan["components"]["llama_cpp"]
+        self.assertRegex(vulkan["sha256"], r"\A[0-9a-f]{64}\Z")
+        self.assertIn("not verified here", vulkan["sha256_provenance"])
+
+    def test_it_changes_nothing_else_about_the_bundle(self):
+        for key in ("python", "model", "corpus"):
+            self.assertEqual(self.cpu["components"][key], self.vulkan["components"][key])
+        self.assertEqual(self.cpu["network"], self.vulkan["network"])
+        self.assertEqual(self.cpu["audience"], self.vulkan["audience"])
+
+    def test_the_cpu_package_remains_the_rollback(self):
+        self.assertTrue(MANIFEST.is_file())
+        self.assertEqual("cpu", self.cpu["components"]["llama_cpp"]["backend"])
+
+    def test_configuration_is_not_offered_as_proof_of_acceleration(self):
+        self.assertTrue(self.vulkan["acceptance"]["not_proven_by_configuration"])
+        self.assertIn("layer count", self.vulkan["acceptance"]["note"])
+
+
+class StartupFailureTests(unittest.TestCase):
+    """A server that has exited is not a server that is still loading."""
+
+    class Dead:
+        def poll(self):
+            return 1
+
+    def test_a_server_that_exits_is_reported_at_once(self):
+        calls = []
+        with self.assertRaises(launcher.LauncherError) as caught:
+            launcher.wait_for_model(1, deadline_seconds=300,
+                                    sleep=lambda s: calls.append(s),
+                                    process=self.Dead())
+        self.assertIn("stopped while starting up", str(caught.exception))
+        self.assertEqual([], calls)   # not five minutes of polling first
+
+    def test_the_browser_waits_for_the_page_to_answer(self):
+        import socket as socket_module
+        with socket_module.socket() as listener:
+            listener.bind((launcher.LOOPBACK, 0))
+            listener.listen(1)
+            port = listener.getsockname()[1]
+            opened = []
+            self.assertTrue(launcher.open_browser_when_ready(
+                port, sleep=lambda s: None, opener=opened.append))
+            self.assertEqual([f"http://{launcher.LOOPBACK}:{port}/"], opened)
+
+    def test_a_page_that_never_answers_does_not_open_a_window(self):
+        opened = []
+        self.assertFalse(launcher.open_browser_when_ready(
+            1, attempts=2, sleep=lambda s: None, opener=opened.append))
+        self.assertEqual([], opened)
+
+
 class VerificationTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(__import__("tempfile").mkdtemp())

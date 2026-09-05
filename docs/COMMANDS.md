@@ -223,3 +223,29 @@ have not:
 material whose redistribution rights have not been reviewed. It is built for
 your own machine.
    the corpus, the boundaries, and exact-text retrieval all work.
+
+## Build the fast version
+
+The first bundle pins llama.cpp's CPU build and answers in minutes. The same
+pinned release publishes a Vulkan build, which uses the graphics chip.
+
+    cd ~/OI-build
+    git pull
+    python tools/build_windows_portable.py --out C:/Uvaha-vulkan --model "<the .gguf path>" --corpus "<your installed corpus>" --manifest config/windows_package_olmo2_q4km_vulkan.v0.1.json
+
+Built into its own folder, so `C:\Uvaha` stays exactly as it is and can be
+gone back to.
+
+**Then read the window, not the clock.** llama-server prints what it found as
+it starts, and two lines decide whether this worked:
+
+- a Vulkan device named, rather than a warning that none was found;
+- a count of layers offloaded to it, which must not be zero.
+
+A faster answer with zero layers offloaded is not acceleration, and a bundle
+that opens is not evidence of one either. If the model server stops during
+startup, Uvaha now says so at once rather than waiting five minutes, and
+llama-server's own reason is printed just above.
+
+If Vulkan does not work on this machine, nothing is lost: `C:\Uvaha` is still
+there.

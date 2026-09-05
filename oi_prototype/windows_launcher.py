@@ -20,6 +20,7 @@ import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 import webbrowser
 from pathlib import Path
@@ -77,15 +78,28 @@ def model_flags(package: dict) -> list[str]:
 
 
 def wait_for_model(port: int, deadline_seconds: float = MODEL_READY_TIMEOUT_SECONDS,
-                   sleep=time.sleep, now=time.monotonic) -> None:
+                   sleep=time.sleep, now=time.monotonic, process=None) -> None:
     """Block until the model server answers, or say plainly that it did not.
 
     A seven-billion-parameter model takes a while to load from disk and the
     window would otherwise open on an application that refuses every question
     for reasons the reader cannot see.
+
+    A server that has exited is not a server that is still loading. Vulkan
+    failing to find a device, a driver that will not initialise, weights too
+    large for the machine: each of those ends the process in seconds, and
+    waiting out the full five minutes afterwards tells the reader nothing he
+    could not have been told at once. The reason is on the screen already,
+    printed by llama-server into this same window.
     """
     started = now()
     while now() - started < deadline_seconds:
+        if process is not None and process.poll() is not None:
+            raise LauncherError(
+                "the model server stopped while starting up. Its own output is "
+                "above this line and says why - most often no usable graphics "
+                "device, or not enough memory for the model"
+            )
         try:
             with urlopen(f"http://{LOOPBACK}:{port}/health", timeout=2.0) as response:
                 if response.status == 200:
@@ -151,6 +165,19 @@ def open_browser(port: int, opener=webbrowser.open) -> None:
         opener(f"http://{LOOPBACK}:{port}/")
 
 
+def open_browser_when_ready(port: int, attempts: int = 100, sleep=time.sleep,
+                            opener=webbrowser.open) -> bool:
+    """Wait for the page to accept a connection, then open it."""
+    for _ in range(attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.settimeout(0.5)
+            if probe.connect_ex((LOOPBACK, port)) == 0:
+                open_browser(port, opener=opener)
+                return True
+        sleep(0.1)
+    return False
+
+
 def run(bundle_root: Path, *, open_window: bool = True) -> int:
     """Start the model, start Uvaha, and take the model down again after.
 
@@ -181,14 +208,21 @@ def run(bundle_root: Path, *, open_window: bool = True) -> int:
     print("Loading the model. The first question after this is the slow one.")
     process = start_model(server_binary, weights, model_port, model_flags(package))
     try:
-        wait_for_model(model_port)
+        wait_for_model(model_port, process=process)
         print(f"Ready. Uvaha is at http://{LOOPBACK}:{uvaha_port}/")
         print("Close this window to stop Uvaha and unload the model.")
-        if open_window:
-            open_browser(uvaha_port)
 
         sys.path.insert(0, str(bundle_root / "app"))
         from oi_prototype.server import serve  # noqa: PLC0415
+
+        # Open the browser from a thread that waits for the port to accept a
+        # connection, and start serving on this one. Opening it first was a
+        # race the browser sometimes won, and the reader met a connection
+        # error on the first launch of an application that was working.
+        if open_window:
+            threading.Thread(
+                target=open_browser_when_ready, args=(uvaha_port,), daemon=True
+            ).start()
 
         serve(
             bundle_root / "app",

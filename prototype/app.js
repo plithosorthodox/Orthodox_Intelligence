@@ -25,6 +25,8 @@ const sessionsToggle = document.querySelector("#sessions-toggle");
 const sessionsClose = document.querySelector("#sessions-close");
 const sessionDrawer = document.querySelector("#session-drawer");
 const sessionScrim = document.querySelector("#session-scrim");
+const appNode = document.querySelector(".app");
+const paneTitle = document.querySelector("#pane-title");
 const newSessionButton = document.querySelector("#new-session");
 const sessionList = document.querySelector("#session-list");
 const archivedSessionList = document.querySelector("#archived-session-list");
@@ -266,20 +268,41 @@ function renderSessionLists() {
   archivedSessions.hidden = archived.length === 0;
 }
 
+// The rail stands open beside the conversation and stays open. Picking a chat
+// used to mean opening a panel over the page, choosing, and having it close
+// again - three steps and a lost view for something a reader does constantly.
+// It only overlays on a narrow window, where there is no room for both.
+const RAIL_HIDDEN = "rail-hidden";
+const NARROW = window.matchMedia("(max-width: 760px)");
+
+function railIsOverlay() {
+  return NARROW.matches;
+}
+
 function openSessionDrawer() {
-  sessionDrawer.hidden = false;
-  sessionScrim.hidden = false;
+  appNode.classList.remove(RAIL_HIDDEN);
+  sessionScrim.hidden = !railIsOverlay();
   sessionsToggle.setAttribute("aria-expanded", "true");
-  document.body.classList.add("drawer-open");
-  window.requestAnimationFrame(() => sessionsClose.focus());
+  if (railIsOverlay()) window.requestAnimationFrame(() => sessionsClose.focus());
 }
 
 function closeSessionDrawer(returnFocus = true) {
-  sessionDrawer.hidden = true;
+  appNode.classList.add(RAIL_HIDDEN);
   sessionScrim.hidden = true;
   sessionsToggle.setAttribute("aria-expanded", "false");
-  document.body.classList.remove("drawer-open");
   if (returnFocus) sessionsToggle.focus();
+}
+
+function toggleSessionDrawer() {
+  if (appNode.classList.contains(RAIL_HIDDEN)) openSessionDrawer();
+  else closeSessionDrawer();
+}
+
+// Choosing a chat on a wide window must not close the rail: the whole point of
+// a rail is that the next choice is one click away.
+function afterSessionChosen() {
+  if (railIsOverlay()) closeSessionDrawer(false);
+  questionNode.focus();
 }
 
 function createSession() {
@@ -293,8 +316,7 @@ function createSession() {
   sessionState.activeId = session.id;
   saveSessionState();
   renderApplication();
-  closeSessionDrawer(false);
-  questionNode.focus();
+  afterSessionChosen();
 }
 
 function selectSession(sessionId) {
@@ -303,8 +325,7 @@ function selectSession(sessionId) {
   sessionState.activeId = session.id;
   saveSessionState();
   renderApplication();
-  closeSessionDrawer(false);
-  questionNode.focus();
+  afterSessionChosen();
 }
 
 function archiveSession(sessionId) {
@@ -328,8 +349,7 @@ function restoreSession(sessionId) {
   sessionState.activeId = session.id;
   saveSessionState();
   renderApplication();
-  closeSessionDrawer(false);
-  questionNode.focus();
+  afterSessionChosen();
 }
 
 function deleteSession(sessionId) {
@@ -448,7 +468,11 @@ function renderConversation() {
   const session = ensureActiveSession();
   messagesNode.replaceChildren();
   if (session.messages.length === 0) {
-    const welcome = element("article", "message assistant welcome");
+    // An empty chat greets the reader by name and stops. The paragraph that
+    // used to stand here explained retrieval, verification and deterministic
+    // boundaries to someone who had not yet asked anything.
+    const welcome = element("div", "empty-state");
+    welcome.append(element("strong", "", "Uvaha"));
     welcome.append(element("p", "", welcomeText));
     messagesNode.append(welcome);
   } else {
@@ -465,6 +489,8 @@ function renderConversation() {
 function renderApplication() {
   renderSessionLists();
   renderConversation();
+  const active = getSession(sessionState.activeId);
+  paneTitle.textContent = active ? active.title : "New chat";
 }
 
 function storedAnswer(answer, elapsedSeconds) {
@@ -599,7 +625,7 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-sessionsToggle.addEventListener("click", openSessionDrawer);
+sessionsToggle.addEventListener("click", toggleSessionDrawer);
 sessionsClose.addEventListener("click", () => closeSessionDrawer());
 sessionScrim.addEventListener("click", () => closeSessionDrawer());
 newSessionButton.addEventListener("click", createSession);
@@ -610,6 +636,21 @@ document.addEventListener("keydown", (event) => {
 });
 
 
+if (railIsOverlay()) closeSessionDrawer(false); else openSessionDrawer();
+NARROW.addEventListener("change", () => {
+  if (railIsOverlay()) closeSessionDrawer(false);
+  else openSessionDrawer();
+});
+
+// A textarea that grows with what is typed, up to the height the stylesheet
+// caps it at. One line for one line, and no scrollbar inside a two-word
+// question.
+function fitComposer() {
+  questionNode.style.height = "auto";
+  questionNode.style.height = questionNode.scrollHeight + "px";
+}
+questionNode.addEventListener("input", fitComposer);
+
 ensureActiveSession();
 saveSessionState();
 renderApplication();
@@ -619,11 +660,11 @@ request("/api/status")
     const webAvailable = setSourceAvailability(status);
     describeStatus(status, webAvailable);
     welcomeText = webAvailable
-      ? "Ask anything. Choose Automatic when you want Uvaha to search the web."
-      : "Ask anything. Uvaha will use your local library.";
+      ? "Ask anything. Answers come from the library on this computer, or from the web when you choose it."
+      : "Ask anything. Answers come from the library on this computer.";
     aboutCopy.textContent = webAvailable
-      ? "Uvaha answers with sources you can inspect. In Automatic mode, your search terms may be sent to Brave Search; answer generation remains on this device."
-      : "Uvaha answers with sources you can inspect from your local library.";
+      ? "Uvaha answers from sources on this computer and shows you which ones. When you choose the web, your search terms leave the machine; the answer is still written here. It is not a person and holds no faith of its own."
+      : "Uvaha answers from sources on this computer, and shows you which ones. Nothing you type leaves the machine. It is not a person and holds no faith of its own.";
     corpusSummary.textContent = status.corpus_mode === "plithos"
       ? `${status.entity_count.toLocaleString()} local entries · ${webAvailable ? "web available" : "local only"}`
       : `${status.record_count} local entries · ${webAvailable ? "web available" : "local only"}`;
