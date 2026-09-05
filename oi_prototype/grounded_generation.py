@@ -14,6 +14,8 @@ SOFIIA_DISPLAY_NAME = "Sofiia v0.1"
 GENERATION_CONTRACT = "sofiia-grounded-json-v0.1"
 MAX_EVIDENCE_CHARS = 18_000
 MAX_EVIDENCE_RECORDS = 8
+MAX_ANSWER_WORDS = 120
+MAX_REJECTED_OUTPUT_CHARS = 1_200
 _QUOTED_SPAN = re.compile(r'["“](.{12,}?)["”]', re.DOTALL)
 _ANSWER_WORD = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)*", re.UNICODE)
 _BARE_ANSWER_LITERALS = frozenset(
@@ -79,10 +81,10 @@ def _answer_words(value: str) -> tuple[str, ...]:
 
 
 def _answer_substance_failure(draft: GroundedDraft) -> str | None:
-    """Return a deterministic failure for obviously vacuous non-abstaining output.
+    """Return a deterministic failure for obviously unusable non-abstaining output.
 
-    This is intentionally only a non-vacuity floor. It does not attempt to prove
-    that the answer's claims are semantically entailed by the cited evidence.
+    This enforces only a non-vacuity and bounded-length floor. It does not attempt
+    to prove that the answer's claims are semantically entailed by the evidence.
     """
     answer = draft.answer.strip()
     if answer.casefold() in _BARE_ANSWER_LITERALS:
@@ -91,11 +93,19 @@ def _answer_substance_failure(draft: GroundedDraft) -> str | None:
     words = _answer_words(answer)
     if len(words) < _MINIMUM_ANSWER_WORDS:
         return "non-abstaining answer is too short to be minimally substantive"
+    if len(words) > MAX_ANSWER_WORDS:
+        return f"non-abstaining answer exceeds the {MAX_ANSWER_WORDS}-word response limit"
 
     for segment_id in draft.citations:
         if words == _answer_words(segment_id):
             return "non-abstaining answer only repeats a citation identifier"
     return None
+
+
+def _rejected_output_excerpt(value: str) -> str:
+    if len(value) <= MAX_REJECTED_OUTPUT_CHARS:
+        return value
+    return value[:MAX_REJECTED_OUTPUT_CHARS] + "…[truncated]"
 
 
 def build_generation_request(
@@ -116,6 +126,7 @@ Return exactly one JSON object and no markdown or surrounding prose using this s
 {{"answer":"string","citations":["segment_id"],"quotes":[{{"segment_id":"segment_id","text":"exact source substring"}}],"abstain":false}}
 Every non-abstaining answer must cite at least one supplied segment_id.
 A non-abstaining answer must be substantive natural-language prose; do not return a bare literal, boolean, punctuation fragment, or only a citation identifier.
+Keep a non-abstaining answer to no more than {MAX_ANSWER_WORDS} words, normally in 1-3 concise sentences, and finish the complete JSON object well before the output limit.
 Any direct quotation used in the answer must appear in quotes and must be copied exactly from the cited evidence.
 Do not quote Scripture, liturgical text, or another exact-text source from memory.
 Contract: {GENERATION_CONTRACT}."""
@@ -241,8 +252,12 @@ def build_correction_request(
     correction = json.dumps(
         {
             "verification_failure": failure,
-            "rejected_output": rejected_output,
-            "instruction": "Return a corrected object that obeys the same JSON contract. Do not add evidence that was not supplied.",
+            "rejected_output": _rejected_output_excerpt(rejected_output),
+            "instruction": (
+                "Return a corrected object that obeys the same JSON contract. "
+                f"Keep the answer at or below {MAX_ANSWER_WORDS} words and close the complete JSON object well before the output limit. "
+                "Do not add evidence that was not supplied."
+            ),
             "available_segment_ids": [item.segment_id for item in selected],
         },
         ensure_ascii=False,

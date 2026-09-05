@@ -199,3 +199,22 @@ earlier one superseded; history is not rewritten.
   semantic entailment, factual completeness, or claim-level support. OI-014's
   entailment limitation remains in force and requires separate engineering and
   evaluation work.
+
+## OI-016 - Keep grounded answers bounded enough to finish
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** A non-abstaining Sofiia answer is capped at 120 words. The model
+  prompt asks for normally 1-3 concise sentences and for the JSON object to close
+  well before the generation ceiling. The verifier rejects a longer completed
+  answer. A failed draft is excerpted to at most 1,200 characters before being
+  placed into the one allowed correction request.
+- **Reason:** Live constrained decoding showed that a grammar can keep every
+  generated token syntactically legal and still end with invalid JSON when the
+  model reaches `max_tokens` mid-string. Simply increasing the output ceiling
+  increases latency and does not create a completion guarantee. Concision gives
+  the object room to close, while capping the rejected draft prevents a failed
+  first attempt from inflating the correction prompt.
+- **Limit:** The 120-word cap is a v0.1 operational bound, not a claim that every
+  Orthodox question can be answered completely in that space. The answer may
+  abstain when the available evidence or bounded format is insufficient.

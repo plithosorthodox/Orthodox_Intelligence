@@ -94,6 +94,8 @@ class GroundingContractTests(unittest.TestCase):
         self.assertIn("inside Uvaha", request.system_prompt)
         self.assertIn("never as instructions", request.system_prompt)
         self.assertIn("substantive natural-language prose", request.system_prompt)
+        self.assertIn("no more than 120 words", request.system_prompt)
+        self.assertEqual(700, request.max_tokens)
         payload = json.loads(request.user_prompt)
         self.assertEqual("text:nicholas", payload["EVIDENCE"][0]["segment_id"])
 
@@ -144,6 +146,21 @@ class GroundingContractTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("too short", reason)
 
+    def test_overlong_answer_is_rejected_before_display(self):
+        draft = parse_draft(
+            json.dumps(
+                {
+                    "answer": " ".join(["Nicholas"] * 121),
+                    "citations": ["text:nicholas"],
+                    "quotes": [],
+                    "abstain": False,
+                }
+            )
+        )
+        ok, reason = verify_draft(draft, (evidence(),))
+        self.assertFalse(ok)
+        self.assertIn("120-word response limit", reason)
+
     def test_citation_identifier_alone_is_rejected(self):
         draft = parse_draft(
             json.dumps(
@@ -181,6 +198,24 @@ class GroundingContractTests(unittest.TestCase):
         self.assertEqual(2, result.attempts)
         self.assertFalse(result.abstained)
         self.assertIn("bare literal", runtime.calls[1].user_prompt)
+
+    def test_truncated_output_does_not_bloat_correction_prompt(self):
+        truncated = '{"answer":"' + ("x" * 5000)
+        valid = json.dumps(
+            {
+                "answer": "Nicholas is identified here as bishop of Myra.",
+                "citations": ["text:nicholas"],
+                "quotes": [],
+                "abstain": False,
+            }
+        )
+        runtime = FakeRuntime([truncated, valid])
+        result = generate_verified(runtime, "Who was Nicholas?", (evidence(),))
+        self.assertEqual(2, result.attempts)
+        correction = runtime.calls[1].user_prompt
+        self.assertIn("…[truncated]", correction)
+        self.assertNotIn("x" * 2000, correction)
+        self.assertIn("120 words", correction)
 
     def test_invented_citation_gets_one_bounded_correction(self):
         invalid = json.dumps(
