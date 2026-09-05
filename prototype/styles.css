@@ -70,6 +70,7 @@ button {
   font-weight: 700;
 }
 button:hover { filter: brightness(1.08); }
+button:disabled, textarea:disabled { cursor: wait; opacity: .62; }
 button:focus-visible, textarea:focus-visible { outline: 3px solid var(--porphyry-light); outline-offset: 2px; }
 button.secondary { flex: 0 0 auto; border-color: var(--line); color: var(--ink); background: transparent; }
 
@@ -81,7 +82,10 @@ button.secondary { flex: 0 0 auto; border-color: var(--line); color: var(--ink);
 .message p:last-child { margin-bottom: 0; }
 .message.user { margin-left: auto; background: var(--porphyry); }
 .message.assistant { background: var(--panel-2); }
+.message.thinking { border: 1px solid var(--line); }
+.message.thinking .classification::after { content: " …"; animation: pulse 1.2s steps(3, end) infinite; }
 .message .classification { margin-bottom: .45rem; color: var(--gold); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.message .elapsed { margin-bottom: .45rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; }
 .evidence-card { margin-top: .8rem; padding: .8rem; border-left: 3px solid var(--gold); background: rgba(19, 13, 24, .58); }
 .evidence-card h3 { margin: 0 0 .35rem; font-size: .95rem; }
 .evidence-card blockquote { margin: 0 0 .5rem; color: var(--muted); }
@@ -112,6 +116,8 @@ textarea { flex: 1; resize: vertical; min-height: 3.3rem; padding: .8rem; border
 .eval-item span { color: var(--muted); font-size: .78rem; }
 
 footer { max-width: 1180px; margin: 0 auto; padding: 0 1.5rem 2rem; color: var(--muted); font-size: .78rem; }
+
+@keyframes pulse { 50% { opacity: .45; } }
 
 @media (max-width: 760px) {
   .masthead { align-items: start; flex-direction: column; gap: 1rem; }

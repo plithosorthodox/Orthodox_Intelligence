@@ -4,6 +4,16 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 — generation progress and timing claimed
+
+The first full local OLMo 2 answer has now succeeded on the tested Windows
+laptop with GPU offload 0. I am holding only `prototype/app.js`,
+`prototype/styles.css`, `prototype/index.html`, `tests/test_prototype.py`, and
+this file to add a visible thinking state, live elapsed timer, completed
+duration, and duplicate-submit protection. The interface will also state that
+open-ended informational questions are model-generated while exact-text and
+identity/pastoral boundary responses remain deterministic by design.
+
 ## 2026-09-05 — Claude handoff follow-up merged; GPU finding recorded
 
 OI PRs #5 (`52ffbc5`) and #6 (`2e25de2`) are green and merged. Uvaha now
