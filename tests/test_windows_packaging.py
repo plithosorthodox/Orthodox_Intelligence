@@ -114,34 +114,60 @@ class VerificationTests(unittest.TestCase):
 
 
 class AssetResolutionTests(unittest.TestCase):
-    RELEASE = {
-        "tag_name": "b9999",
+    """llama.cpp publishes a release most days and not every one is complete.
+
+    The run that produced this saw v0.4.0, which carries no Windows x64
+    archive at all, and stopped. Walking back to the most recent release that
+    does carry one is the honest answer to "the current Windows CPU build".
+    """
+
+    @staticmethod
+    def asset(name):
+        return {"name": name, "browser_download_url": f"https://example.invalid/{name}"}
+
+    FULL = {
+        "tag_name": "b9000",
         "assets": [
-            {"name": "llama-b9999-bin-win-cuda-x64.zip",
-             "browser_download_url": "https://example.invalid/cuda.zip"},
-            {"name": "llama-b9999-bin-win-cpu-x64.zip",
-             "browser_download_url": "https://example.invalid/cpu.zip"},
-            {"name": "llama-b9999-bin-win-vulkan-x64.zip",
-             "browser_download_url": "https://example.invalid/vulkan.zip"},
-            {"name": "llama-b9999-bin-ubuntu-x64.zip",
-             "browser_download_url": "https://example.invalid/linux.zip"},
+            asset.__func__("llama-b9000-bin-win-cuda-x64.zip"),
+            asset.__func__("llama-b9000-bin-win-cpu-x64.zip"),
+            asset.__func__("llama-b9000-bin-win-vulkan-x64.zip"),
+            asset.__func__("llama-b9000-bin-ubuntu-x64.zip"),
+            asset.__func__("llama-b9000-bin-win-cpu-arm64.zip"),
         ],
     }
+    EMPTY = {"tag_name": "v0.4.0", "assets": []}
+
+    def opener(self, releases):
+        return lambda _url, timeout=None: FakeResponse(json.dumps(releases).encode())
 
     def test_the_cpu_asset_is_chosen_over_every_accelerator(self):
-        opener = lambda _url, timeout=None: FakeResponse(json.dumps(self.RELEASE).encode())
-        resolved = builder.resolve_llama_asset(opener=opener)
-        self.assertEqual("b9999", resolved["release_tag"])
-        self.assertEqual("llama-b9999-bin-win-cpu-x64.zip", resolved["asset"])
+        resolved = builder.resolve_llama_asset(opener=self.opener([self.FULL]))
+        self.assertEqual("b9000", resolved["release_tag"])
+        self.assertEqual("llama-b9000-bin-win-cpu-x64.zip", resolved["asset"])
 
-    def test_a_release_with_no_windows_build_is_reported_not_guessed(self):
-        release = {"tag_name": "b1", "assets": [
-            {"name": "llama-b1-bin-macos-arm64.zip",
-             "browser_download_url": "https://example.invalid/mac.zip"}]}
-        opener = lambda _url, timeout=None: FakeResponse(json.dumps(release).encode())
+    def test_a_release_with_no_windows_archive_is_walked_past(self):
+        resolved = builder.resolve_llama_asset(opener=self.opener([self.EMPTY, self.FULL]))
+        self.assertEqual("b9000", resolved["release_tag"])
+
+    def test_drafts_and_prereleases_are_not_used(self):
+        draft = dict(self.FULL, tag_name="b9001", draft=True)
+        pre = dict(self.FULL, tag_name="b9002", prerelease=True)
+        resolved = builder.resolve_llama_asset(opener=self.opener([draft, pre, self.FULL]))
+        self.assertEqual("b9000", resolved["release_tag"])
+
+    def test_nothing_anywhere_reports_what_was_actually_published(self):
         with self.assertRaises(builder.BuildError) as caught:
-            builder.resolve_llama_asset(opener=opener)
-        self.assertIn("by hand", str(caught.exception))
+            builder.resolve_llama_asset(opener=self.opener([
+                self.EMPTY,
+                {"tag_name": "v0.3.0", "assets": [self.asset("llama-macos-arm64.zip")]},
+            ]))
+        message = str(caught.exception)
+        self.assertIn("llama-macos-arm64.zip", message)
+        self.assertIn("by hand", message)
+
+    def test_an_empty_index_is_reported(self):
+        with self.assertRaises(builder.BuildError):
+            builder.resolve_llama_asset(opener=self.opener([]))
 
 
 class LauncherTests(unittest.TestCase):

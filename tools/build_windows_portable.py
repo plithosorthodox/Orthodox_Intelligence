@@ -90,51 +90,78 @@ def verify(path: Path, expected: str, name: str, *, record: bool) -> str:
     return actual
 
 
-LLAMA_RELEASES = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+LLAMA_RELEASES = "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30"
+LLAMA_ACCELERATORS = ("vulkan", "cuda", "hip", "sycl", "cann", "musa", "opencl", "arm64")
 
 
-def resolve_llama_asset(*, opener=urlopen) -> dict:
-    """Find the current Windows CPU build of llama-server and say which it is.
-
-    The manifest cannot carry this pin from the start: llama.cpp publishes a
-    new release most days and an asset name six months old is a 404. So it is
-    resolved once, on the machine that can reach GitHub, printed, and written
-    into the manifest - after which every build verifies against it and a
-    changed byte stops the build.
-
-    CPU rather than Vulkan or HIP, because CPU runs everywhere and a backend
-    is a measurement, not a default.
-    """
-    with opener(LLAMA_RELEASES, timeout=60) as response:
-        release = json.loads(response.read().decode("utf-8"))
-    tag = release.get("tag_name")
-    if not isinstance(tag, str) or not tag:
-        raise BuildError("the llama.cpp release index carried no tag")
+def _windows_cpu_asset(release: dict) -> dict | None:
     candidates = []
     for asset in release.get("assets", []):
         name = str(asset.get("name", ""))
         lowered = name.lower()
-        if not lowered.endswith(".zip") or "win" not in lowered:
+        if not lowered.endswith(".zip"):
+            continue
+        if "win" not in lowered:
             continue
         if "x64" not in lowered and "amd64" not in lowered:
             continue
-        # Anything naming an accelerator is a different build with different
-        # requirements; the CPU asset is the one that runs on any machine.
-        if any(mark in lowered for mark in ("vulkan", "cuda", "hip", "sycl", "arm64", "cann")):
+        if any(mark in lowered for mark in LLAMA_ACCELERATORS):
             continue
         candidates.append(asset)
     if not candidates:
-        raise BuildError(
-            f"release {tag} publishes no Windows x64 CPU archive under a name this "
-            "recognises; pin release_tag, asset and url by hand"
-        )
-    chosen = sorted(candidates, key=lambda a: str(a.get("name", "")))[0]
-    return {
-        "release_tag": tag,
-        "asset": str(chosen["name"]),
-        "url": str(chosen["browser_download_url"]),
-        "archive_has_top_level_dir": False,
-    }
+        return None
+    # "cpu" in the name when the project says so, else the shortest name, which
+    # is the plain build - the accelerator builds are the ones with something
+    # extra in them.
+    named = [a for a in candidates if "cpu" in str(a["name"]).lower()]
+    pool = named or candidates
+    return sorted(pool, key=lambda a: (len(str(a["name"])), str(a["name"])))[0]
+
+
+def resolve_llama_asset(*, opener=urlopen) -> dict:
+    """Find the newest Windows CPU build of llama-server and say which it is.
+
+    The manifest cannot carry this pin from the start: llama.cpp publishes a
+    release most days and an asset name six months old is a 404. So it is
+    resolved once, on the machine that can reach GitHub, printed, and written
+    into the manifest - after which every build verifies against it and a
+    changed byte stops the build.
+
+    Recent releases are scanned rather than only the newest, because not every
+    release carries a full set of binaries: the run that found this was stopped
+    by v0.4.0, which publishes no Windows x64 archive at all. Walking back
+    finds the most recent release that does, which is the honest answer to
+    "the current Windows CPU build" and not a guess.
+
+    CPU rather than Vulkan or HIP, because CPU runs everywhere and a backend is
+    a measurement, not a default.
+    """
+    with opener(LLAMA_RELEASES, timeout=60) as response:
+        releases = json.loads(response.read().decode("utf-8"))
+    if not isinstance(releases, list) or not releases:
+        raise BuildError("the llama.cpp release index was empty")
+    for release in releases:
+        if release.get("draft") or release.get("prerelease"):
+            continue
+        asset = _windows_cpu_asset(release)
+        if asset is None:
+            continue
+        return {
+            "release_tag": str(release.get("tag_name", "")),
+            "asset": str(asset["name"]),
+            "url": str(asset["browser_download_url"]),
+            "archive_has_top_level_dir": False,
+        }
+    seen = []
+    for release in releases[:3]:
+        for asset in release.get("assets", []):
+            seen.append(f"  {release.get('tag_name')}  {asset.get('name')}")
+    raise BuildError(
+        "no Windows x64 CPU archive was found in the last "
+        f"{len(releases)} llama.cpp releases. They publish these\n"
+        + ("\n".join(seen) if seen else "  (no assets at all)")
+        + "\nPin release_tag, asset and url in the manifest by hand."
+    )
 
 
 def unpack(archive: Path, destination: Path, *, strip_top_level: bool = False) -> None:

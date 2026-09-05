@@ -53,7 +53,14 @@ REQUIRED = (
     "tools/serve_prototype.py",
 )
 FORBIDDEN_SUFFIXES = (".gguf", ".onnx", ".safetensors", ".pem", ".key")
-LOCAL_PATH = re.compile(r"(?:[A-Za-z]:\\|/Users/|/home/|/work" r"space/)")
+# A path that belongs to one machine and no other: someone's home directory or
+# user profile. A bare drive-root path is not one of those - the Windows bundle
+# is documented as installing to C:\Uvaha, and a reader has to be told where to
+# look. What must never appear is whose machine it was built on.
+LOCAL_PATH = re.compile(
+    r"(?:[A-Za-z]:\\(?:Users|Documents and Settings)\\"
+    r"|/Users/|/home/|/work" r"space/)"
+)
 
 
 def load_json(path: Path, errors: list[str]):
