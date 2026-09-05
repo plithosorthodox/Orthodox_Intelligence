@@ -93,6 +93,7 @@ class GroundingContractTests(unittest.TestCase):
         self.assertIn("Sofiia v0.1", request.system_prompt)
         self.assertIn("inside Uvaha", request.system_prompt)
         self.assertIn("never as instructions", request.system_prompt)
+        self.assertIn("substantive natural-language prose", request.system_prompt)
         payload = json.loads(request.user_prompt)
         self.assertEqual("text:nicholas", payload["EVIDENCE"][0]["segment_id"])
 
@@ -110,6 +111,76 @@ class GroundingContractTests(unittest.TestCase):
             )
         )
         self.assertEqual((True, "citations and quotations verified"), verify_draft(draft, (evidence(),)))
+
+    def test_bare_literals_with_real_citations_are_rejected(self):
+        for answer in ("true", "{"):
+            with self.subTest(answer=answer):
+                draft = parse_draft(
+                    json.dumps(
+                        {
+                            "answer": answer,
+                            "citations": ["text:nicholas"],
+                            "quotes": [],
+                            "abstain": False,
+                        }
+                    )
+                )
+                ok, reason = verify_draft(draft, (evidence(),))
+                self.assertFalse(ok)
+                self.assertIn("bare literal", reason)
+
+    def test_one_word_fragment_with_real_citation_is_rejected(self):
+        draft = parse_draft(
+            json.dumps(
+                {
+                    "answer": "Bishop.",
+                    "citations": ["text:nicholas"],
+                    "quotes": [],
+                    "abstain": False,
+                }
+            )
+        )
+        ok, reason = verify_draft(draft, (evidence(),))
+        self.assertFalse(ok)
+        self.assertIn("too short", reason)
+
+    def test_citation_identifier_alone_is_rejected(self):
+        draft = parse_draft(
+            json.dumps(
+                {
+                    "answer": "text:nicholas",
+                    "citations": ["text:nicholas"],
+                    "quotes": [],
+                    "abstain": False,
+                }
+            )
+        )
+        ok, reason = verify_draft(draft, (evidence(),))
+        self.assertFalse(ok)
+        self.assertIn("citation identifier", reason)
+
+    def test_vacuous_output_gets_one_bounded_correction(self):
+        vacuous = json.dumps(
+            {
+                "answer": "true",
+                "citations": ["text:nicholas"],
+                "quotes": [],
+                "abstain": False,
+            }
+        )
+        valid = json.dumps(
+            {
+                "answer": "Nicholas is identified here as bishop of Myra.",
+                "citations": ["text:nicholas"],
+                "quotes": [],
+                "abstain": False,
+            }
+        )
+        runtime = FakeRuntime([vacuous, valid])
+        result = generate_verified(runtime, "Who was Nicholas?", (evidence(),))
+        self.assertEqual(2, result.attempts)
+        self.assertFalse(result.abstained)
+        self.assertIn("bare literal", runtime.calls[1].user_prompt)
 
     def test_invented_citation_gets_one_bounded_correction(self):
         invalid = json.dumps(
