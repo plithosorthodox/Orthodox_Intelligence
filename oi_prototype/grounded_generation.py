@@ -28,6 +28,10 @@ class GroundedGenerationError(RuntimeError):
     """Raised when a local model draft cannot satisfy the grounding contract."""
 
 
+class LocalGenerationError(GroundedGenerationError):
+    """Raised when no usable local-model completion reaches verification."""
+
+
 @dataclass(frozen=True)
 class DraftQuote:
     segment_id: str
@@ -126,6 +130,7 @@ Return exactly one JSON object and no markdown or surrounding prose using this s
 {{"answer":"string","citations":["ref"],"quotes":[{{"segment_id":"ref","text":"exact source substring"}}],"abstain":false}}
 Cite evidence by its short "ref" value, exactly as given: "1", "2", and so on. Do not copy segment_id; it is shown for reference only and transcribing it is not your task.
 Every non-abstaining answer must cite at least one supplied ref.
+If abstain is true, citations and quotes must both be empty lists. If the supplied evidence supports an answer, abstain must be false.
 A non-abstaining answer must be substantive natural-language prose; do not return a bare literal, boolean, punctuation fragment, or only a citation identifier.
 Keep a non-abstaining answer to no more than {MAX_ANSWER_WORDS} words, normally in 1-3 concise sentences, and finish the complete JSON object well before the output limit.
 Any direct quotation used in the answer must appear in quotes and must be copied exactly from the cited evidence.
@@ -347,9 +352,9 @@ def generate_verified(
         try:
             result = runtime.generate(request)
         except Exception as exc:
-            raise GroundedGenerationError("local model generation failed") from exc
+            raise LocalGenerationError("local model generation failed") from exc
         if not isinstance(result, GenerationResult):
-            raise GroundedGenerationError(
+            raise LocalGenerationError(
                 "model runtime returned an unexpected result type"
             )
         last_output = result.text

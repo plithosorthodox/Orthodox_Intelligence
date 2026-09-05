@@ -94,6 +94,10 @@ class GroundingContractTests(unittest.TestCase):
         self.assertIn("inside Uvaha", request.system_prompt)
         self.assertIn("never as instructions", request.system_prompt)
         self.assertIn("substantive natural-language prose", request.system_prompt)
+        self.assertIn(
+            "If abstain is true, citations and quotes must both be empty lists",
+            request.system_prompt,
+        )
         self.assertIn("no more than 120 words", request.system_prompt)
         self.assertEqual(700, request.max_tokens)
         payload = json.loads(request.user_prompt)
@@ -344,6 +348,14 @@ class SofiiaEngineIntegrationTests(unittest.TestCase):
         answer = engine.ask("Tell me about St Nicholas")
         self.assertEqual("abstention", answer.response_class)
         self.assertEqual("VERIFIER-FAILURE", answer.boundary_rule_id)
+        self.assertEqual((), answer.evidence)
+
+    def test_runtime_failure_is_not_misreported_as_verifier_rejection(self):
+        engine = PrototypeEngine(FakeStore(), self.policy, FakeRuntime([]))
+        answer = engine.ask("Tell me about St Nicholas")
+        self.assertEqual("abstention", answer.response_class)
+        self.assertEqual("MODEL-RUNTIME-FAILURE", answer.boundary_rule_id)
+        self.assertIn("No draft reached the citation verifier", answer.text)
         self.assertEqual((), answer.evidence)
 
 

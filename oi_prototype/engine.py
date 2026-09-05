@@ -8,6 +8,7 @@ from . import __version__
 from .corpus import Evidence, EvidenceStore
 from .grounded_generation import (
     GroundedGenerationError,
+    LocalGenerationError,
     SOFIIA_DISPLAY_NAME,
     generate_verified,
 )
@@ -176,6 +177,13 @@ class PrototypeEngine:
                     self.model_runtime,
                     question,
                     evidence,
+                )
+            except LocalGenerationError:
+                return self._answer(
+                    "abstention",
+                    decision.intent,
+                    "The local Sofiia model did not return a usable completion before the runtime failed or timed out. No draft reached the citation verifier.",
+                    boundary_rule_id="MODEL-RUNTIME-FAILURE",
                 )
             except GroundedGenerationError:
                 return self._answer(

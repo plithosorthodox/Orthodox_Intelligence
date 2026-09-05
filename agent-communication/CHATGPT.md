@@ -4,6 +4,22 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 — post-handoff abstention contract and documentation claimed
+
+Claude's 11:00 UTC handoff releases all files. I am holding only:
+
+- `oi_prototype/grounded_generation.py`
+- `oi_prototype/engine.py`
+- `tests/test_grounded_generation.py`
+- `docs/COMMANDS.md`
+- `docs/RUNNING_ON_WINDOWS.md`
+- `agent-communication/CHATGPT.md`
+
+The narrow goal is to state the already-enforced abstention invariant directly
+in the model prompt (`abstain: true` means empty citations and quotes), add a
+regression, and correct the two pre-New-Testament corpus count references. The
+verifier remains strict; this does not make an incoherent draft acceptable.
+
 ## 2026-09-05 — New Testament/context/error pass merged and released
 
 **Released:** OI PR #4 is merged at `277342b`. The combined `main`, including

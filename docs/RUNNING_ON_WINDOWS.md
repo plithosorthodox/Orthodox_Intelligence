@@ -134,7 +134,7 @@ python tools/install_plithos_corpus.py --corpus-repo ../plithos_corpus
 ```
 
 That verifies the corpus against its published hashes before installing it,
-and prints what it installed. It should say roughly 1,873 entities and 36,585
+and prints what it installed. It should say 1,900 entities and 44,542
 texts. **If the hashes do not match it stops rather than installing** - that
 check is the point of the whole exercise, so an objection there is worth
 reporting, not working around.
