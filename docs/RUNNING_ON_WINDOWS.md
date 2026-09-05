@@ -61,14 +61,26 @@ Two settings matter, and both are on the model's load screen:
 
 ## 2. Install Python
 
-Open the Microsoft Store, search **Python 3.12**, install it. Nothing else is
-needed; Uvaha uses no third-party packages.
+Open the Microsoft Store, search **Python**, install **3.12 or newer**. 3.13
+is fine. Nothing else is needed: Uvaha uses no third-party packages at all, so
+there is nothing to `pip install` and nothing to go stale.
 
 ## 3. Get Uvaha and the corpus
 
-Open **PowerShell** (press Start, type PowerShell) and run these one at a
-time. `git` comes with Windows 11; if it is missing, install **Git for
-Windows** from `git-scm.com` first.
+**Both repositories are private, so this needs you signed in to GitHub.**
+A plain `git clone` will fail or ask for a password that no longer works;
+GitHub stopped accepting account passwords for git in 2021. There are two ways
+round it, and the first is easier than it sounds.
+
+### The easy way: let Git ask
+
+Install **Git for Windows** from `git-scm.com`, taking the defaults. It
+includes Git Credential Manager, which opens a browser window the first time
+you clone something private and lets you sign in to GitHub normally. You
+authorise once and it remembers.
+
+Then open **PowerShell** (press Start, type PowerShell) and run these one at a
+time:
 
 ```powershell
 cd $HOME
@@ -78,9 +90,37 @@ cd Orthodox_Intelligence
 python tools\install_plithos_corpus.py --corpus-repo ..\plithos_corpus
 ```
 
-The last command verifies the corpus against its published hashes before
-installing it, and prints how many texts it installed. It should say roughly
-1,873 entities and 36,585 texts.
+A browser window appearing on the first `git clone` is the expected
+behaviour, not an error.
+
+### The way with no git at all
+
+If that goes wrong, you can download both by hand. Signed in to GitHub in your
+browser, open each repository, press the green **Code** button, choose
+**Download ZIP**, and unpack both into your user folder (the one PowerShell
+means by `$HOME`) so that they sit side by side, one named
+`Orthodox_Intelligence` and the other `plithos_corpus`.
+
+GitHub names the unpacked folders `Orthodox_Intelligence-main` and
+`plithos_corpus-main`. **Rename them to drop the `-main`**, or the paths in
+the commands below will not match.
+
+One thing this costs you: the corpus installer verifies the corpus against the
+exact upstream commit it was built from, and a ZIP carries no git history for
+it to read. If it objects, that is why, and the clone route avoids it.
+
+Either way, finish with:
+
+```powershell
+cd $HOME\Orthodox_Intelligence
+python tools\install_plithos_corpus.py --corpus-repo ..\plithos_corpus
+```
+
+That verifies the corpus against its published hashes before installing it,
+and prints what it installed. It should say roughly 1,873 entities and 36,585
+texts. **If the hashes do not match it stops rather than installing** - that
+check is the point of the whole exercise, so an objection there is worth
+reporting, not working around.
 
 ## 4. Start Uvaha
 
