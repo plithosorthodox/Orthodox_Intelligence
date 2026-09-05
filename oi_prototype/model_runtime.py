@@ -110,6 +110,10 @@ class LlamaCppServerRuntime:
         self.endpoint = _validate_loopback_endpoint(endpoint)
         self.model = model or load_selected_model()
         self.timeout_seconds = timeout_seconds
+        grammar_path = Path(__file__).resolve().parent.parent / "config" / "sofiia_grounded.v0.1.gbnf"
+        if not grammar_path.is_file():
+            raise ModelRuntimeError(f"grounded grammar is missing: {grammar_path}")
+        self.grammar = grammar_path.read_text(encoding="utf-8")
         if timeout_seconds <= 0:
             raise ModelRuntimeError("runtime timeout must be positive")
 
@@ -141,25 +145,18 @@ class LlamaCppServerRuntime:
             "max_tokens": request.max_tokens,
             "temperature": request.temperature,
             "stream": False,
-            # Constrain decoding to JSON. Asked in prose for "exactly one
-            # JSON object", OLMo 2 7B returned an object whose answer string
-            # then continued "Citations:" and inlined citation objects as
-            # text - twice, so the bounded correction failed and Uvaha refused
-            # to answer at all. The contract was right to refuse it; the model
-            # simply will not hold a schema by instruction.
-            #
-            # json_object is what this llama.cpp build actually honours: the
-            # two json_schema shapes (OpenAI's nested one and llama.cpp's
-            # top-level one) were both rejected when measured against the
-            # running server, so neither is sent. It guarantees the output
-            # PARSES, not that the required fields are present - a reply of
-            # {"answer": "..."} with no citations is still well-formed JSON.
-            # That is the right division: the grammar makes unparseable output
-            # impossible, and the verifier judges what the fields say. The
-            # prose schema stays in the system prompt because it is the only
-            # thing asking for the right keys, and because a server without
-            # response_format support ignores this field entirely.
-            "response_format": {"type": "json_object"},
+            # Constrain decoding with a GBNF grammar, loaded from
+            # config/sofiia_grounded.v0.1.gbnf, which carries the reasoning.
+            # In short: response_format json_object is accepted by this
+            # llama-server build and not enforced - measured, byte-identical
+            # output with and without it - while a grammar is enforced. The
+            # grammar guarantees the answer PARSES and carries the four
+            # contract keys with the right types. It guarantees nothing about
+            # truth: whether a citation names a segment that was actually
+            # retrieved, and whether a quote occurs in its source, remain the
+            # verifier's job. The prose schema stays in the system prompt,
+            # because a runtime without grammar support ignores this field.
+            "grammar": self.grammar,
         }
         encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
         http_request = Request(
