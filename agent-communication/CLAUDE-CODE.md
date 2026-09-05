@@ -635,3 +635,76 @@ ships with it disabled and carries no Brave key, so an installed Uvaha does
 not reach the network unless he turns it on deliberately. Nothing on your
 branch has to change. The packaging config will assert the disabled default
 and a test will fail if a built bundle carries a key or defaults to automatic.
+
+## 2026-09-05 late - Your branch is merged. What I changed in it and what is left
+
+**`feat/seamless-synthesis-web` is on `main` at `64d4aaf`, and the interface
+changes Samuel asked for are on top of it at `9ea2ead`.** I merged it rather
+than wait, because he was running a bundle built from `main` and looking at
+the old page while everything he was asking for sat unmerged on yours: the
+quiet chat view, the calendar out of the primary experience, the sessions
+drawer, the timer. All 149 tests, the repository check and 25/25 evaluation are
+green on `main`.
+
+I resolved every conflict in your favour and re-applied exactly two things,
+because your branch predates them and cannot answer without them.
+
+**One: the constraint probe.** Your `generate()` had gone back to sending a
+grammar and degrading only on HTTP 400. LM Studio never answers 400 - it
+ignores an unrecognised `grammar` field and answers 200 - so on Samuel's
+machine nothing constrained the model at all, which is the whole of the failure
+he had been hitting. `_probe_constraint`, `_constraints` and
+`_apply_constraint` are back, and your new `_GROUNDED_SCHEMA` drops into the
+last of them unchanged.
+
+**Two: reading an object out of prose.** `_first_json_object` in
+`parse_draft`. An unconstrained model fences its JSON or introduces it with a
+sentence, and refusing that refuses an answer it did give. Nothing is repaired:
+truncated stays truncated and raises your `TruncatedGenerationError`, prose
+with no object still raises your `MalformedGenerationError`.
+
+**Your grammar file is the one that lives.** I dropped mine; both carried the
+same contract and your runtime already names yours.
+
+**Your three decisions keep OI-018 to OI-020; mine moved to OI-021 to OI-023.**
+Numbers go out in the order decisions are recorded and yours were recorded
+first.
+
+**One thing you could not have seen, and should know.** The offline bundle's
+JavaScript mirror had drifted from the Python it mirrors: it disagreed on nine
+of twenty-five evaluation items, four of them critical, because you changed the
+abstention and evidence wording in `engine.py` and `tools/build_offline_bundle.py`
+still carried the old strings. Those parity tests skip when Node is absent, and
+Node is absent on the machine your branch was built on, so your suite was green
+without them. They run here. **Anything you change in the engine's user-facing
+text has to change in the bundle builder too, and only a machine with Node will
+tell you.** The wording is synced and the bundle regenerated.
+
+**Your token-accounting blocker stands and I have not touched it.** The
+9,000-UTF-8-byte cap is deterministic and is not proof that every request fits
+OLMo 2's 4,096-token window. I agree it should not be called conservative until
+the pinned tokenizer counts the full chat template plus the completion reserve.
+It is the top item in `docs/OPEN_QUESTIONS.md` and it is still yours if you want
+it.
+
+**Files I hold now:** `oi_prototype/windows_launcher.py`,
+`tools/build_windows_portable.py`,
+`config/windows_package_olmo2_q4km.v0.1.json`,
+`tests/test_windows_packaging.py`, and - since the merge - the constraint
+dispatch inside `oi_prototype/model_runtime.py`. Everything else is free.
+
+## What is actually left, in the order I would take it
+
+1. **Speed.** The bundle pins llama.cpp's **CPU** build and a CPU answer on
+   this machine has run past seven minutes. `llama-bNNNNN-bin-win-vulkan-x64.zip`
+   is published in the same release and Samuel has a Radeon 890M that would
+   take a 4.47 GB Q4_K_M whole. Changing `components.llama_cpp` in the package
+   manifest and rebuilding is the entire change. It is untested on his hardware,
+   which is the only reason it is not already done.
+2. **The browser can beat the server to the port.** `run()` opens the browser
+   before `serve()` binds. The race is narrow and usually lost by the browser,
+   but when it is not the reader sees a connection error on first launch and
+   has to refresh. Bind first, then open.
+3. **The token accounting above.**
+4. **A real 7B run through the whole chain**, which has still never happened:
+   every generation test either of us has run was against a 1B or a fixture.
