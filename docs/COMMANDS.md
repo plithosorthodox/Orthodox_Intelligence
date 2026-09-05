@@ -146,3 +146,42 @@ Update first, in any case:
 
     cd ~/Orthodox_Intelligence
     git pull
+
+## Build the self-contained Uvaha
+
+One folder that needs nothing else on the machine: no LM Studio, no Git, no
+Python, no download. Building it is the only step that reaches the network.
+
+You need the model file first. In LM Studio, download
+**OLMo-2-1124-7B-Instruct-Q4_K_M-GGUF** by hus960, then find where it landed:
+
+    dir /s /b "%USERPROFILE%\.lmstudio\models\*OLMo*Q4_K_M*.gguf"
+
+Then, in Git Bash or PowerShell, from the repository:
+
+    cd ~/Orthodox_Intelligence
+    git pull
+    python tools/build_windows_portable.py --out C:/Uvaha --model "<the .gguf path>" --record-hashes
+
+The first build resolves the current llama.cpp Windows CPU release, downloads
+it and the embedded Python, and prints the hash of everything it took. Read
+those, then keep them:
+
+    git add config/windows_package_olmo2_q4km.v0.1.json
+    git commit -m "Record what the bundle was built from"
+
+Every build after that verifies against those hashes and stops if a published
+component has changed underneath.
+
+Then open **C:\Uvaha** and double-click **Uvaha.cmd**. It loads the model,
+opens Uvaha in the browser, and unloads the model when you close the window.
+The folder can be copied to another machine as it stands.
+
+The corpus travels inside the bundle, so install it before building if you
+have not:
+
+    python tools/install_corpus.py
+
+**Do not hand this folder to anyone else.** The installed corpus carries
+material whose redistribution rights have not been reviewed. It is built for
+your own machine.
