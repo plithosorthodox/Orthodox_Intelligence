@@ -25,21 +25,40 @@
   },
   "weights": {
     "bundled_in_repository": false,
-    "upstream_revision": null,
-    "local_artifact_sha256": null,
-    "pin_revision_and_hash_before_experiment": true
+    "upstream_revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84",
+    "local_artifact_sha256": "acd24d76e6d012f2c25ad96abc69b80828308b5daaed9774df914bbf67c22ac4",
+    "pin_revision_and_hash_before_experiment": true,
+    "local_artifact_name": "olmo2-7b-instruct.q8_0.gguf",
+    "local_artifact_bytes": 7759895104,
+    "quantization": "Q8_0",
+    "quantization_note": "llama.cpp refuses to requantize from Q8_0, so Q4_K_M requires a fresh BF16 conversion. Q8_0 carries less quantization noise into a measured run and fits a 7B in 16 GB of RAM."
   },
   "runtime": {
     "production_runtime_selected": false,
     "development_adapter": "llama.cpp OpenAI-compatible server",
     "development_runtime_license": "MIT",
     "transport": "loopback_http_only",
-    "remote_fallback_allowed": false
+    "remote_fallback_allowed": false,
+    "training_context_tokens": 4096,
+    "constrained_decoding": "GBNF grammar, config/sofiia_grounded.v0.1.gbnf",
+    "constrained_decoding_note": "response_format json_object is accepted by llama-server and not enforced on the build measured here; only grammar binds.",
+    "required_server_flags": [
+      "--ctx-size 4096",
+      "--parallel 1",
+      "--temp 0"
+    ],
+    "required_server_flags_note": "llama-server defaults to four slots and divides --ctx-size between them, so --parallel 1 is required or each request receives a quarter of the window."
   },
   "intended_use": "Stock/reference OI substrate before OI-specific behavioral training. Model weights provide language and reasoning, not citable Orthodox evidence.",
   "sources": [
     "https://allenai.org/olmo2",
     "https://huggingface.co/allenai/OLMo-2-1124-7B-Instruct",
     "https://github.com/ggml-org/llama.cpp"
-  ]
+  ],
+  "measurements": {
+    "measured_on": "CPU only, no GPU, 16 GB RAM",
+    "seconds_per_verified_answer_7b_q8_0": 1168,
+    "seconds_per_verified_answer_1b_q8_0": 34,
+    "note": "Indicative, single-machine, CPU-bound. Recorded so a later GPU measurement has something to be compared against, not as an acceptance figure."
+  }
 }
