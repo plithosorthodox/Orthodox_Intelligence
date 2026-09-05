@@ -33,29 +33,42 @@ under the magnifying glass or **Discover** in the left sidebar.
 
 In LM Studio:
 
-1. Search for **Olmo 3** and choose the **7B Instruct** model.
-2. Download the **Q4_K_M** build, about 4.5 GB.
+1. Search for **OLMo 2 1124 7B Instruct** and take the **allenai** one, from
+   the laboratory that trained it rather than a re-upload.
+2. Download the **Q4_K_M** build, about 4.3 GB. It should say
+   **Full GPU Offload Possible**.
 3. Open the **Developer** tab (or **Local Server**) and press **Start Server**.
 4. Note the address it shows, usually `http://127.0.0.1:1234`.
 
-**Why Olmo 3 rather than the OLMo 2 named in the manifest.** They are the same
-family from the same laboratory under the same Apache-2.0 licence, and
-llama.cpp supports both. Olmo 3 is a year newer and far more widely used, and
-the one thing Uvaha needs that OLMo 2 was measurably bad at is holding a fixed
-output shape - which is exactly what a newer instruction-tuned model tends to
-do better.
+**Olmo 3 does not load in LM Studio, and this was established the hard way.**
+It is the obvious choice on paper: same laboratory, same Apache-2.0 licence, a
+year newer, far more used, and upstream llama.cpp registers
+`Olmo3ForCausalLM`. It fails anyway. Every attempt ends the same:
 
-This does not overturn `OI-012`. That decision names OLMo 2 7B as **S0**, the
+    Engine protocol runtime llama-server ... exited before becoming healthy.
+    exitCode=1, signal=null
+
+That is not a settings problem and no amount of tuning moves it. It happened
+with automatic optimisation on and off, at 4096 and 8192 context, with Flash
+Attention on and off, and with the GPU both undetected and detected. An engine
+that exits *before becoming healthy* never loaded the file.
+
+The likely cause is that Olmo 3 uses sliding-window attention on all layers
+except every fourth, which is a structural change from OLMo 2, and LM Studio
+bundles its own copy of llama.cpp that lags upstream. **If a later LM Studio
+adds it, Olmo 3 is worth revisiting** - it holds 65,536 tokens of context
+against OLMo 2's 4,096, which would remove the evidence-truncation problem
+entirely.
+
+Until then use OLMo 2, which is also what `OI-012` names as **S0**, the
 reference substrate, because it is the model the forced-choice experiment
-actually tested, and it should stay S0 until something is tested against it.
-Which model the application ships with is a separate question from which model
-the research measures. If Olmo 3 proves better here, that is a reason to run
-the comparison, not a reason to skip it.
+actually tested.
 
 Two settings matter, and both are on the model's load screen:
 
 - **Context length: 4096.** OLMo 2 was trained at 4,096 tokens. Asking for
-  more does not give you more; it degrades the answers.
+  more does not give you more; it degrades the answers. (Olmo 3 holds 65,536,
+  so this number is per-model rather than a fixed rule.)
 - **GPU offload: as high as it will go.** This is what uses the Radeon
   graphics. If the model fails to load, lower it and try again.
 
@@ -157,6 +170,10 @@ that every quotation appears in its source; when a draft fails that twice, it
 returns nothing rather than show you something it cannot stand behind.
 
 ## If it is slow, or fails
+
+**LM Studio reports 0 GPUs.** The Vulkan runtime is not installed. Open
+**Runtime** in the left sidebar and install it; the Radeon is invisible to LM
+Studio until then, and everything runs on the processor.
 
 **Very slow.** GPU offload is probably not on. Check it in LM Studio, and
 watch Task Manager's GPU graph while it answers - it should move.
