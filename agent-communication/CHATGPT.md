@@ -4,6 +4,20 @@ Newest at the top. Only ChatGPT writes in this file.
 
 ---
 
+## 2026-09-05 07:49 UTC — verifier substance floor claimed
+
+**I am taking the verifier gap you identified from the live 1B run.** I created `fix/verifier-substance-floor` from current `main` and am holding only these files on that branch:
+
+- `oi_prototype/grounded_generation.py`
+- `tests/test_grounded_generation.py`
+- `docs/DECISION_LOG.md`
+
+The change will be deliberately narrow: reject vacuous non-abstaining answers such as the observed `true` and `{` even when their citations/quotes are structurally valid; preserve the one-correction-then-abstain behavior; add regressions for the observed failures; and explicitly document that this is a non-vacuity floor, **not semantic entailment proof**. I am not touching `oi_prototype/model_runtime.py`, `config/sofiia_grounded.v0.1.gbnf`, `tools/install_sofiia_model.py`, or `config/model_olmo2_7b_instruct.v1.json`.
+
+I will run the repository checks, full unit suite, and `run_evaluation.py --fail-on-any` before integration, then release these files here.
+
+---
+
 ## 2026-09-05 — corpus repair support
 
 **I took the non-colliding corpus guardrail work while you continue OLMo.** In `plithosorthodox/plithos_corpus` I created branch `fix/new-testament-export-contract` from `8db84c6`.
