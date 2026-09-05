@@ -215,11 +215,15 @@ def copy_corpus(install_dir: Path, destination: Path) -> None:
     shutil.copytree(install_dir, destination, dirs_exist_ok=True)
 
 
+# %~dp0 ends in a backslash. Quoted as "%~dp0" that backslash escapes the
+# closing quote and the argument arrives as C:\Uvaha" - a path with a quote in
+# it, which nothing can open. "%~dp0." is the same directory named in a way
+# that survives quoting.
 LAUNCH_CMD = """@echo off
 rem Uvaha. Double-click this file.
 setlocal
 cd /d "%~dp0"
-"runtime\\python\\python.exe" -m oi_prototype.windows_launcher "%~dp0"
+"runtime\\python\\python.exe" -m oi_prototype.windows_launcher "%~dp0."
 if errorlevel 1 pause
 endlocal
 """

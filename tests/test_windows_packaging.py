@@ -374,6 +374,18 @@ class EndToEndBuildTests(unittest.TestCase):
         # Second build verifies against what the first recorded.
         self.build(record=False)
 
+    def test_no_argument_ends_in_a_backslash_before_its_closing_quote(self):
+        """%~dp0 ends in a backslash and cmd lets it escape the closing quote.
+
+        Written from the first real run: the launcher was handed C:\\Uvaha"
+        - the drive path with a quote welded onto it - and could not open the
+        manifest that was sitting right there.
+        """
+        self.build(record=True)
+        script = (self.tmp / "bundle" / "Uvaha.cmd").read_text(encoding="utf-8")
+        self.assertNotIn('\\"', script)
+        self.assertIn('"%~dp0."', script)
+
     def test_the_embedded_interpreter_is_pointed_at_the_application(self):
         self.build(record=True)
         path_file = self.tmp / "bundle" / "runtime" / "python" / "python312._pth"
