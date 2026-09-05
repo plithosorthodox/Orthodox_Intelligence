@@ -359,5 +359,38 @@ class SofiiaEngineIntegrationTests(unittest.TestCase):
         self.assertEqual((), answer.evidence)
 
 
+class EmbeddedJsonTests(unittest.TestCase):
+    OBJECT = (
+        '{"answer":"Saint Nicholas is commemorated on 6 December.",'
+        '"citations":["1"],"quotes":[],"abstain":false}'
+    )
+
+    def test_a_fenced_object_is_read_rather_than_refused(self):
+        draft = parse_draft("Here is the result\n```json\n" + self.OBJECT + "\n```\n")
+        self.assertFalse(draft.abstain)
+        self.assertEqual(("1",), draft.citations)
+
+    def test_an_object_after_a_sentence_is_read(self):
+        draft = parse_draft("Sure. " + self.OBJECT)
+        self.assertEqual(
+            "Saint Nicholas is commemorated on 6 December.", draft.answer
+        )
+
+    def test_a_truncated_object_is_still_refused(self):
+        with self.assertRaises(GroundedGenerationError) as caught:
+            parse_draft('{"answer":"Saint Nicholas of My')
+        self.assertIn("truncated", str(caught.exception))
+
+    def test_prose_with_no_object_is_still_refused(self):
+        with self.assertRaises(GroundedGenerationError):
+            parse_draft("Venerable Nicholas the Monk of Bulgaria was a soldier.")
+
+    def test_a_brace_inside_a_string_does_not_end_the_object(self):
+        draft = parse_draft(
+            'Result: {"answer":"a } brace","citations":["1"],"quotes":[],"abstain":false}'
+        )
+        self.assertEqual("a } brace", draft.answer)
+
+
 if __name__ == "__main__":
     unittest.main()

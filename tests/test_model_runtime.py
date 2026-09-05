@@ -95,5 +95,66 @@ class LlamaCppRuntimeTests(unittest.TestCase):
             )
 
 
+class StructuredOutputProbeTests(unittest.TestCase):
+    """The constraint has to be the one the server in front of us enforces.
+
+    llama.cpp honours a GBNF grammar and ignores response_format; LM Studio
+    honours response_format and drops an unrecognised grammar field without
+    complaint. Choosing by refusal never worked, because LM Studio does not
+    refuse.
+    """
+
+    COMPLETION = {
+        "model": "served-model",
+        "choices": [{"message": {"content": '{"answer":"x"}'}}],
+    }
+
+    def _dispatch(self, routes):
+        def handler(target, timeout=None):
+            url = target if isinstance(target, str) else target.full_url
+            for suffix, payload in routes.items():
+                if url.endswith(suffix):
+                    return _FakeResponse(payload)
+            raise OSError("not found: " + url)
+
+        return handler
+
+    def _sent_body(self, routes):
+        with patch("oi_prototype.model_runtime.urlopen", side_effect=self._dispatch(routes)) as mocked:
+            runtime = LlamaCppServerRuntime("http://127.0.0.1:1234")
+            runtime.generate(
+                GenerationRequest(system_prompt="System", user_prompt="User")
+            )
+            return json.loads(mocked.call_args.args[0].data.decode("utf-8")), runtime
+
+    def test_lm_studio_receives_a_json_schema_and_no_grammar(self):
+        body, runtime = self._sent_body(
+            {
+                "/api/v0/models": {"object": "list", "data": [{"id": "olmo"}]},
+                "/v1/chat/completions": self.COMPLETION,
+            }
+        )
+        self.assertNotIn("grammar", body)
+        self.assertEqual("json_schema", body["response_format"]["type"])
+        self.assertTrue(body["response_format"]["json_schema"]["strict"])
+        self.assertEqual("json_schema", runtime.status()["structured_output"])
+
+    def test_llama_cpp_receives_a_grammar_and_no_json_schema(self):
+        body, runtime = self._sent_body(
+            {
+                "/props": {"default_generation_settings": {}},
+                "/v1/chat/completions": self.COMPLETION,
+            }
+        )
+        self.assertNotIn("response_format", body)
+        self.assertIn("root ::=", body["grammar"])
+        self.assertEqual("grammar", runtime.status()["structured_output"])
+
+    def test_a_server_answering_everything_alike_is_not_mistaken_for_lm_studio(self):
+        body, _ = self._sent_body({"": self.COMPLETION})
+        self.assertIn("grammar", body)
+        self.assertNotIn("response_format", body)
+
+
 if __name__ == "__main__":
     unittest.main()

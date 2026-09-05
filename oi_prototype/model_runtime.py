@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
@@ -139,12 +139,13 @@ class LlamaCppServerRuntime:
         self.endpoint = _validate_loopback_endpoint(endpoint)
         self.model = model or load_selected_model()
         self.timeout_seconds = timeout_seconds
-        grammar_path = Path(__file__).resolve().parent.parent / "config" / "sofiia_grounded.v0.1.gbnf"
+        grammar_path = Path(__file__).resolve().parent.parent / "config" / "sofiia_grounded.v0.2.gbnf"
         if not grammar_path.is_file():
             raise ModelRuntimeError(f"grounded grammar is missing: {grammar_path}")
         self.grammar = grammar_path.read_text(encoding="utf-8")
         if timeout_seconds <= 0:
             raise ModelRuntimeError("runtime timeout must be positive")
+        self._constraint: str | None = None
 
     def status(self) -> dict[str, Any]:
         return {
@@ -155,7 +156,65 @@ class LlamaCppServerRuntime:
             "license": self.model.license_spdx,
             "remote_fallback": False,
             "production_runtime": False,
+            "structured_output": self._constraint or "not yet probed",
         }
+
+    def _get_json(self, path: str) -> Any:
+        """GET a small JSON document from the endpoint, or None if it is not there."""
+        try:
+            with urlopen(self.endpoint + path, timeout=min(self.timeout_seconds, 10.0)) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, OSError, ValueError):
+            return None
+
+    def _probe_constraint(self) -> str:
+        """Ask the server which structured-output constraint it will actually honour.
+
+        This exists because the previous arrangement degraded only on a refusal,
+        and the refusal never came. llama.cpp enforces a GBNF `grammar` and
+        ignores `response_format`. LM Studio is the other way round: it enforces
+        an OpenAI-style json_schema and silently drops an unrecognised `grammar`
+        field, answering 200 with free prose. So a request written for llama.cpp
+        and sent to LM Studio came back as unconstrained narrative, the parser
+        called it "not strict JSON", and the reader was told the verifier had
+        rejected a draft when in truth nothing had constrained one.
+
+        LM Studio publishes its own REST index at /api/v0/models; llama.cpp does
+        not. The shape is checked, not merely the status code, so a server that
+        answers every path with the same object cannot be mistaken for either.
+        """
+        for path, name in (("/api/v0/models", "json_schema"), ("/props", "grammar")):
+            payload = self._get_json(path)
+            if not isinstance(payload, dict):
+                continue
+            if name == "json_schema" and isinstance(payload.get("data"), list):
+                return "json_schema"
+            if name == "grammar" and "default_generation_settings" in payload:
+                return "grammar"
+        return "grammar"
+
+    def _constraints(self) -> list[str]:
+        """The constraints to attempt, best first, always ending unconstrained."""
+        if self._constraint is None:
+            self._constraint = self._probe_constraint()
+        other = "grammar" if self._constraint == "json_schema" else "json_schema"
+        return [self._constraint, other, "none"]
+
+    @staticmethod
+    def _apply_constraint(body: dict[str, Any], constraint: str, grammar: str) -> None:
+        body.pop("grammar", None)
+        body.pop("response_format", None)
+        if constraint == "grammar":
+            body["grammar"] = grammar
+        elif constraint == "json_schema":
+            body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "sofiia_grounded",
+                    "strict": True,
+                    "schema": _GROUNDED_SCHEMA,
+                },
+            }
 
     def _post(self, body: dict[str, Any]) -> dict[str, Any]:
         encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
@@ -194,40 +253,28 @@ class LlamaCppServerRuntime:
             "max_tokens": request.max_tokens,
             "temperature": request.temperature,
             "stream": False,
-            # Constrain decoding with a GBNF grammar, loaded from
-            # config/sofiia_grounded.v0.1.gbnf, which carries the reasoning.
-            # In short: response_format json_object is accepted by this
-            # llama-server build and not enforced - measured, byte-identical
-            # output with and without it - while a grammar is enforced. The
-            # grammar guarantees the answer PARSES and carries the four
-            # contract keys with the right types. It guarantees nothing about
-            # truth: whether a citation names a segment that was actually
-            # retrieved, and whether a quote occurs in its source, remain the
-            # verifier's job. The prose schema stays in the system prompt,
-            # because a runtime without grammar support ignores this field.
-            "grammar": self.grammar,
         }
-        try:
-            payload = self._post(body)
-        except _GrammarRejected:
-            # Not every local server speaks llama.cpp's grammar field. LM Studio
-            # and others take an OpenAI-style json_schema instead, and a server
-            # that understands neither still has the schema in the system
-            # prompt. Degrade in that order rather than fail: a constrained
-            # runtime is better than an unconstrained one, and an unconstrained
-            # one is better than no answer, because the verifier is what
-            # actually protects the reader either way.
-            body.pop("grammar", None)
-            body["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {"name": "sofiia_grounded", "strict": True,
-                                "schema": _GROUNDED_SCHEMA},
-            }
+        # The prose schema stays in the system prompt whatever happens here,
+        # because a runtime that honours neither constraint still has to be
+        # told what to write. The constraint only guarantees that the answer
+        # PARSES and carries the four contract keys with the right types; it
+        # guarantees nothing about truth. Whether a citation names a segment
+        # that was actually retrieved, and whether a quote occurs in its
+        # source, remain the verifier's job either way.
+        payload = None
+        last_error: Exception | None = None
+        for constraint in self._constraints():
+            self._apply_constraint(body, constraint, self.grammar)
             try:
                 payload = self._post(body)
-            except _GrammarRejected:
-                body.pop("response_format", None)
-                payload = self._post(body)
+            except _GrammarRejected as exc:
+                last_error = exc
+                continue
+            break
+        if payload is None:
+            raise ModelRuntimeError(
+                "local generation request failed under every structured-output constraint"
+            ) from last_error
 
         try:
             text = payload["choices"][0]["message"]["content"]

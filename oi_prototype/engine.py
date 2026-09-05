@@ -185,11 +185,19 @@ class PrototypeEngine:
                     "The local Sofiia model did not return a usable completion before the runtime failed or timed out. No draft reached the citation verifier.",
                     boundary_rule_id="MODEL-RUNTIME-FAILURE",
                 )
-            except GroundedGenerationError:
+            except GroundedGenerationError as exc:
+                # Name the specific check that failed. The generic sentence was
+                # the same whether the model had cited a segment nobody
+                # retrieved, quoted a line that is not in its source, or written
+                # no JSON at all, and a reader who cannot tell those apart
+                # cannot tell a working installation from a broken one either.
+                reason = str(exc).strip().rstrip(".")
                 return self._answer(
                     "abstention",
                     decision.intent,
-                    "Sofiia generated a draft, but it did not pass the local citation and quotation verifier after one bounded correction. No unverified answer was shown.",
+                    "Sofiia generated a draft, but it did not pass the local citation and quotation "
+                    "verifier after one bounded correction. No unverified answer was shown. "
+                    f"Reason: {reason}.",
                     boundary_rule_id="VERIFIER-FAILURE",
                 )
             if generated.abstained:

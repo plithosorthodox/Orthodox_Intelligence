@@ -15,6 +15,13 @@
 # newline, so a rule body wrapped across lines is a parse error - which reads
 # only as "failed to parse grammar" and took a bisect to find.
 #
+# v0.2 bounds the answer string. A 7B model asked this question wrote past the
+# token limit and the object was cut off mid-sentence, so a draft that was on
+# its way to being correct was rejected for length alone. The prompt asks for
+# 120 words and the prompt is not binding; this is. The bound is generous -
+# roughly 900 characters, comfortably more than 120 words - because it exists
+# to stop a runaway, not to shape the prose.
+#
 # string and ws are llama.cpp's own rules from grammars/json.gbnf, so escaping
 # behaves exactly as its JSON grammar does. Key order is fixed: it costs the
 # model nothing and removes permutations a small model spends tokens getting
@@ -22,10 +29,11 @@
 # a real segment and whether a quote appears in its source is the verifier's
 # job, and stays the verifier's job.
 
-root ::= "{" ws "\"answer\":" ws string "," ws "\"citations\":" ws idarray "," ws "\"quotes\":" ws quotes "," ws "\"abstain\":" ws boolean "}" ws
+root ::= "{" ws "\"answer\":" ws answerstring "," ws "\"citations\":" ws idarray "," ws "\"quotes\":" ws quotes "," ws "\"abstain\":" ws boolean "}" ws
 idarray ::= "[" ws ( string ("," ws string)* )? "]" ws
 quotes ::= "[" ws ( qitem ("," ws qitem)* )? "]" ws
 qitem ::= "{" ws "\"segment_id\":" ws string "," ws "\"text\":" ws string "}" ws
 boolean ::= ("true" | "false") ws
 string ::= "\"" ( [^"\\\x7F\x00-\x1F] | "\\" (["\\bfnrt] | "u" [0-9a-fA-F]{4}) )* "\"" ws
+answerstring ::= "\"" ( [^"\\\x7F\x00-\x1F] | "\\" (["\\bfnrt] | "u" [0-9a-fA-F]{4}) ){1,900} "\"" ws
 ws ::= | " " | "\n" [ \t]{0,20}

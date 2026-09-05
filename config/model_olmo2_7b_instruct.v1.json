@@ -40,7 +40,7 @@
     "transport": "loopback_http_only",
     "remote_fallback_allowed": false,
     "training_context_tokens": 4096,
-    "constrained_decoding": "GBNF grammar, config/sofiia_grounded.v0.1.gbnf",
+    "constrained_decoding": "GBNF grammar, config/sofiia_grounded.v0.2.gbnf",
     "constrained_decoding_note": "response_format json_object is accepted by llama-server and not enforced on the build measured here; only grammar binds.",
     "required_server_flags": [
       "--ctx-size 4096",

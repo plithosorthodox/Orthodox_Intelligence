@@ -179,10 +179,54 @@ Contract: {GENERATION_CONTRACT}."""
     ), selected
 
 
+def _first_json_object(text: str) -> str | None:
+    """Return the first balanced top-level JSON object in the text, if there is one.
+
+    A constrained runtime never needs this. An unconstrained one habitually
+    wraps the object in a markdown fence or introduces it with a sentence, and
+    refusing that is refusing an answer the model did give. This locates an
+    object the model wrote; it does not repair, complete, or compose one, so a
+    truncated object stays truncated and is still rejected downstream.
+    """
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    return None
+
+
 def parse_draft(text: str) -> GroundedDraft:
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
+        embedded = _first_json_object(text)
+        if embedded is not None and embedded != text.strip():
+            try:
+                payload = json.loads(embedded)
+            except json.JSONDecodeError:
+                payload = None
+            if payload is not None:
+                return _draft_from_payload(payload)
         stripped = text.rstrip()
         incomplete_at_end = (
             exc.msg.startswith("Unterminated string")
@@ -197,6 +241,10 @@ def parse_draft(text: str) -> GroundedDraft:
                 "model output appears truncated before completing strict JSON"
             ) from exc
         raise GroundedGenerationError("model output was not strict JSON") from exc
+    return _draft_from_payload(payload)
+
+
+def _draft_from_payload(payload: object) -> GroundedDraft:
     if not isinstance(payload, dict):
         raise GroundedGenerationError("model output JSON must be an object")
 

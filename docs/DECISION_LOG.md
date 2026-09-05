@@ -238,3 +238,57 @@ earlier one superseded; history is not rewritten.
   tokenizer-exact accounting. Apparent truncation is inferred from an incomplete
   JSON prefix because the currently claimed runtime seam does not expose a
   completion finish reason.
+
+## OI-018 - Ask the server which constraint it enforces, do not wait for a refusal
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** The runtime probes the endpoint once and sends the structured
+  output constraint that server actually honours: a GBNF grammar to llama.cpp,
+  an OpenAI-style json_schema to LM Studio. The remaining constraints are still
+  attempted in order if the first is refused, ending unconstrained rather than
+  ending in no answer. `status()` reports which constraint is in force.
+- **Reason:** The previous arrangement sent a grammar and degraded to a schema
+  only on HTTP 400. LM Studio does not answer 400: it ignores an unrecognised
+  `grammar` field and answers 200, so nothing constrained the model. Measured
+  against a real installation, OLMo 2 7B then wrote 1,168 seconds of free prose
+  that stopped mid-sentence, the parser called it "not strict JSON", and the
+  reader was told the verifier had rejected a draft when in truth no constraint
+  had been applied to one. LM Studio publishes a REST index at
+  `/api/v0/models`; llama.cpp answers 404 there and carries
+  `default_generation_settings` at `/props`. Both were confirmed against a
+  running llama.cpp server. The shape of each response is checked, not merely
+  its status, so a server that answers every path alike is not mistaken for
+  either.
+- **Limit:** The probe recognises two servers. Anything else is treated as
+  llama.cpp and falls through the chain on refusal.
+
+## OI-019 - Read an object the model did write; do not compose one it did not
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** When output is not strict JSON, the first balanced top-level
+  JSON object in it is parsed instead. Nothing is repaired, completed, or
+  composed: a truncated object stays truncated and is still refused, and prose
+  containing no object is still refused.
+- **Reason:** An unconstrained runtime habitually wraps the object in a
+  markdown fence or introduces it with a sentence. Refusing that is refusing an
+  answer the model did give, and it is the shape a fallback to no constraint
+  produces most often.
+- **Limit:** This is a reader of the model's output, not a repairer of it. It
+  changes nothing about verification: citations and quotations are checked
+  exactly as before.
+
+## OI-020 - Name the check that failed
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** A verifier failure states the specific reason it failed.
+- **Reason:** The refusal read identically whether the model had cited a
+  segment nobody retrieved, quoted a line absent from its source, or written no
+  JSON at all. A reader who cannot tell those apart cannot tell a working
+  installation from a broken one, and neither could the person trying to get
+  one running: the same sentence was reported for two entirely different
+  faults.
+- **Limit:** The reason names the check, not the draft. No unverified model
+  text is shown.
