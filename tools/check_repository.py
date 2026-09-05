@@ -35,6 +35,8 @@ REQUIRED = (
     "config/acceptance_criteria.v0.1.json",
     "config/prototype_policy.v0.1.json",
     "config/prototype_policy.v0.2.json",
+    "config/sofiia_grounded.v0.2.gbnf",
+    "config/web_search_brave.v0.1.json",
     "evaluation/README.md",
     "evaluation/development/suite.v0.1.json",
     "evaluation/development/suite.v0.2.json",
@@ -47,10 +49,15 @@ REQUIRED = (
     "prototype/styles.css",
     "oi_prototype/engine.py",
     "oi_prototype/evaluation.py",
+    "oi_prototype/retrieval.py",
+    "oi_prototype/web_search.py",
     "research/evidence/provenance.v0.1.json",
     "tools/run_evaluation.py",
     "tools/score_forced_choice.py",
     "tools/serve_prototype.py",
+    "tests/test_retrieval.py",
+    "tests/test_web_integration.py",
+    "tests/test_web_search.py",
 )
 FORBIDDEN_SUFFIXES = (".gguf", ".onnx", ".safetensors", ".pem", ".key")
 LOCAL_PATH = re.compile(r"(?:[A-Za-z]:\\|/Users/|/home/|/work" r"space/)")

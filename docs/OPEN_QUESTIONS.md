@@ -45,11 +45,19 @@ These questions are unresolved on purpose. An answer is recorded in
 6. What deterministic or measured claim-support/entailment gate is sufficient
    before generated Orthodox prose is treated as product-ready rather than a
    research prototype?
+7. How will the complete OLMo 2 chat request, correction, chat-template
+   overhead, and completion reserve be counted with the pinned tokenizer? The
+   current 9,000-byte proxy is tested for deterministic size but is not a proof
+   that every input remains inside the 4,096-token context.
 
 ## Product
 
-1. Should conversation history exist at all; if so, how is it encrypted, deleted,
-   excluded from backups, and disclosed?
+1. How should local, switchable chat sessions be encrypted and indexed; what is
+   the exact distinction between reversible archive and permanent deletion; and
+   how are deleted sessions excluded from backups, crash reports, and operating-
+   system cloud synchronization? The prototype's browser `localStorage` is not
+   encrypted. It retains messages and displayed local-corpus excerpts, while
+   Web source bodies and metadata are removed before persistence.
 2. What emergency-response policy applies across supported jurisdictions and
    languages?
 3. Will optional update checks be offered, and can they remain completely
@@ -67,3 +75,23 @@ These questions are unresolved on purpose. An answer is recorded in
    displayed, and when does the verification expire?
 9. Which connector is piloted first, with what minimum OAuth scope, confirmation
    rule, token storage, retention, and prompt-injection test?
+
+## Optional Web evidence
+
+1. Does a distributed Uvaha use bring-your-own Brave Search credentials, a
+   project-managed relay, or a different provider? Who bears account setup,
+   usage cost, abuse controls, and support in each design?
+2. Do Brave Search's current retention policy and restrictions on caching,
+   redistribution, model training, and evaluation receive legal/privacy approval
+   for the intended users and jurisdictions?
+3. Is an enterprise zero-data-retention arrangement required before sensitive
+   user groups may enable Automatic sourcing, and what must the in-product notice
+   say before the first outbound query?
+4. What provider-neutral interface and acceptance suite are required so Uvaha
+   can change search services without changing local generation, evidence
+   identity, or offline behavior?
+5. How should freshness, conflicting Web sources, publication dates, source
+   quality, and retracted or changed pages be represented without implying that
+   search rank is authority?
+6. Which indirect-prompt-injection and malicious-content tests are required
+   before Web evidence can move beyond provisional development status?

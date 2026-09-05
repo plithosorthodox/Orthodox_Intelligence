@@ -22,7 +22,12 @@ between information and pastoral authority.
 | Evaluation leakage | Test items appear in training or prompt examples | Sealed bank, hashes, access separation, near-duplicate checks |
 | Benchmark gaming | A model learns superficial labels or letter bias | Hidden items, mirrored choices, generative transfer tests |
 | Language fallback | Non-English answers silently revert to English or wrong script | Per-language metrics, native review, fallback disclosure |
-| Privacy leakage | Local conversations enter logs, analytics, or training | History off by default; no telemetry; log redaction |
+| Privacy leakage | Local conversations enter logs, analytics, or training | Browser-local disclosure; no telemetry, request logging, training, or server persistence |
+| Local-history tampering | Browser storage changes a saved answer or source card | Treat restored history as untrusted, non-citable data; re-resolve local source ID/hash pairs against the current corpus; never promote saved prose to evidence |
+| Search-query disclosure | A private question is sent outward without a clear choice | Local-only default; affirmative Automatic selection; bounded current-question query only |
+| Search credential exfiltration | A provider redirect forwards the API key to another origin | Fixed HTTPS endpoint; reject redirects; keep credentials server-side |
+| Web prompt injection | Retrieved Web text instructs the local model to ignore policy | Mark Web text as untrusted evidence; preserve system priority; verify citations |
+| Web-result persistence | Provider result bodies enter saved chats, training, or evaluation | Request-memory-only bundle; filter Web source cards before local storage; fake fixtures in tests |
 | Hidden network use | The app calls a remote model when local inference fails | Airplane-mode release test and dependency inspection |
 | Supply-chain compromise | Model, index, or library differs from evaluated artifact | Release manifest, signature verification, reproducible build |
 | Device compromise | Another process reads local history or model state | Platform storage controls, encryption decision, minimal retention |

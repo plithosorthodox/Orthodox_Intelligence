@@ -5,8 +5,10 @@ graphics, on Windows 11. It assumes no prior setup and nothing installed.
 
 Two programs run side by side. **Sofiia** is the model, served locally.
 **Uvaha** is the application that retrieves evidence, asks Sofiia, verifies
-the answer, and shows it. Neither sends anything over the network once
-installed.
+the answer, and shows it. The default Local library only path sends nothing
+over the network once installed. An explicitly enabled Automatic source mode
+can send a bounded search query to Brave Search; answer generation remains
+local.
 
 Nothing here has been executed on Windows. It was worked out on Linux and
 written down carefully; if a step does not match what you see, that is worth
@@ -156,6 +158,28 @@ model is running on the processor and reaches that limit, restart Uvaha with
 it does not make generation faster.
 
 Open `http://127.0.0.1:8765` in a browser.
+
+### Optional Web sources
+
+Web search is disabled unless you provide a Brave Search API key and add
+`--web-search`. In PowerShell, enter the key at a hidden prompt, start Uvaha,
+and remove the environment variable when finished:
+
+```powershell
+$secureKey = Read-Host "Brave Search API key" -AsSecureString
+$env:UVAHA_BRAVE_API_KEY = [System.Net.NetworkCredential]::new("", $secureKey).Password
+python tools/serve_prototype.py --model-endpoint http://127.0.0.1:1234 --web-search
+Remove-Item Env:UVAHA_BRAVE_API_KEY
+```
+
+Choose **Automatic** in Uvaha to permit Web search only after deterministic
+local retrieval does not sufficiently cover the question. Choose **Local
+library only**, or omit `--web-search`, for no outbound search request. A Brave
+account is required and the provider may charge or retain queries under its
+current terms. The provider returns evidence only; Sofiia still answers on the
+device. The server does not cache the Web response, and Web source cards are
+filtered out before a chat is saved in browser `localStorage`; a reopened chat
+shows only the answer and a note that those Web sources were not stored.
 
 If you leave off `--model-endpoint`, Uvaha still runs. It becomes the evidence
 navigator: it searches the corpus and shows you the sources, and says so

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,6 +19,11 @@ from .plithos_store import PlithosEvidenceStore
 from .policy import BoundaryPolicy
 
 MAX_REQUEST_BYTES = 32 * 1024
+MAX_HISTORY_TURNS = 6
+MAX_HISTORY_TURN_CHARS = 800
+MAX_CONTEXT_SOURCES = 4
+MAX_SEGMENT_ID_CHARS = 200
+_SHA256 = re.compile(r"[0-9a-fA-F]{64}\Z")
 
 
 def build_default_engine(
@@ -27,6 +33,7 @@ def build_default_engine(
     force_demo: bool = False,
     model_endpoint: str | None = None,
     model_timeout_seconds: float = 120.0,
+    web_search_provider: object | None = None,
 ) -> PrototypeEngine:
     policy = BoundaryPolicy(root / "config" / "prototype_policy.v0.2.json")
     install_dir = corpus_install or (root / "artifacts" / "plithos")
@@ -39,7 +46,12 @@ def build_default_engine(
         if model_endpoint
         else None
     )
-    return PrototypeEngine(store, policy, model_runtime=runtime)
+    return PrototypeEngine(
+        store,
+        policy,
+        model_runtime=runtime,
+        web_search_provider=web_search_provider,
+    )
 
 
 class PrototypeServer(ThreadingHTTPServer):
@@ -54,6 +66,7 @@ class PrototypeServer(ThreadingHTTPServer):
         force_demo: bool = False,
         model_endpoint: str | None = None,
         model_timeout_seconds: float = 120.0,
+        web_search_provider: object | None = None,
     ):
         self.root = root
         self.static_root = root / "prototype"
@@ -64,6 +77,7 @@ class PrototypeServer(ThreadingHTTPServer):
             force_demo=force_demo,
             model_endpoint=model_endpoint,
             model_timeout_seconds=model_timeout_seconds,
+            web_search_provider=web_search_provider,
         )
         super().__init__(address, PrototypeHandler)
 
@@ -216,13 +230,99 @@ class PrototypeHandler(BaseHTTPRequestHandler):
             )
             return
         question = payload.get("question") if isinstance(payload, dict) else None
+        source_mode = (
+            payload.get("source_mode", "local_only")
+            if isinstance(payload, dict)
+            else "local_only"
+        )
+        history_value = (
+            payload.get("history", [])
+            if isinstance(payload, dict)
+            else []
+        )
+        context_sources_value = (
+            payload.get("context_sources", [])
+            if isinstance(payload, dict)
+            else []
+        )
         if not isinstance(question, str):
             self._send_error_json(
                 HTTPStatus.BAD_REQUEST,
                 "question must be a string",
             )
             return
-        self._send_json(self.server.engine.ask(question).as_dict())
+        if source_mode not in {"automatic", "local_only"}:
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                "source_mode must be automatic or local_only",
+            )
+            return
+        if not isinstance(history_value, list) or len(history_value) > MAX_HISTORY_TURNS:
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                "history must be a bounded list of conversation turns",
+            )
+            return
+        history: list[dict[str, str]] = []
+        for turn in history_value:
+            if (
+                not isinstance(turn, dict)
+                or set(turn) != {"role", "content"}
+                or turn.get("role") not in {"user", "assistant"}
+                or not isinstance(turn.get("content"), str)
+                or not turn["content"].strip()
+                or len(turn["content"]) > MAX_HISTORY_TURN_CHARS
+            ):
+                self._send_error_json(
+                    HTTPStatus.BAD_REQUEST,
+                    "history contains an invalid conversation turn",
+                )
+                return
+            history.append(
+                {
+                    "role": turn["role"],
+                    "content": " ".join(turn["content"].split()),
+                }
+            )
+        if (
+            not isinstance(context_sources_value, list)
+            or len(context_sources_value) > MAX_CONTEXT_SOURCES
+        ):
+            self._send_error_json(
+                HTTPStatus.BAD_REQUEST,
+                "context_sources must be a bounded list of local source references",
+            )
+            return
+        context_sources: list[dict[str, str]] = []
+        for source in context_sources_value:
+            if (
+                not isinstance(source, dict)
+                or set(source) != {"segment_id", "content_sha256"}
+                or not isinstance(source.get("segment_id"), str)
+                or not source["segment_id"].strip()
+                or len(source["segment_id"]) > MAX_SEGMENT_ID_CHARS
+                or not isinstance(source.get("content_sha256"), str)
+                or _SHA256.fullmatch(source["content_sha256"]) is None
+            ):
+                self._send_error_json(
+                    HTTPStatus.BAD_REQUEST,
+                    "context_sources contains an invalid local source reference",
+                )
+                return
+            context_sources.append(
+                {
+                    "segment_id": source["segment_id"],
+                    "content_sha256": source["content_sha256"].lower(),
+                }
+            )
+        self._send_json(
+            self.server.engine.ask(
+                question,
+                source_mode=source_mode,
+                history=tuple(history),
+                context_sources=tuple(context_sources),
+            ).as_dict()
+        )
 
 
 def serve(
@@ -233,6 +333,7 @@ def serve(
     force_demo: bool = False,
     model_endpoint: str | None = None,
     model_timeout_seconds: float = 120.0,
+    web_search_provider: object | None = None,
 ) -> None:
     server = PrototypeServer(
         ("127.0.0.1", port),
@@ -241,6 +342,7 @@ def serve(
         force_demo=force_demo,
         model_endpoint=model_endpoint,
         model_timeout_seconds=model_timeout_seconds,
+        web_search_provider=web_search_provider,
     )
     host, selected_port = server.server_address
     status = server.engine.status()
@@ -259,6 +361,10 @@ def serve(
         )
     else:
         print("Model: Sofiia v0.1 selected but not connected")
+    if status.get("web_available"):
+        print("Web sources: available when Automatic is selected")
+    else:
+        print("Web sources: disabled")
     print(
         "Questions are not written to logs or disk. No question is sent to a "
         "non-loopback model endpoint."

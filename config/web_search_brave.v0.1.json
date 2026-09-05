@@ -1,0 +1,51 @@
+{
+  "manifest_version": "uvaha-web-search-provider-v0.1",
+  "status": "development_only",
+  "provider_id": "brave-llm-context-v0.1",
+  "provider_name": "Brave Search LLM Context",
+  "endpoint": "https://api.search.brave.com/res/v1/llm/context",
+  "api_version": "2026-07-31",
+  "authentication": {
+    "header": "X-Subscription-Token",
+    "bundled": false,
+    "persistent_plaintext_allowed": false
+  },
+  "request": {
+    "country": "US",
+    "search_language": "en",
+    "result_count": 8,
+    "maximum_number_of_urls": 4,
+    "maximum_number_of_tokens": 2048,
+    "maximum_number_of_tokens_per_url": 512,
+    "maximum_number_of_snippets": 12,
+    "maximum_number_of_snippets_per_url": 3,
+    "context_threshold_mode": "strict",
+    "safe_search": "moderate",
+    "enable_local": false,
+    "enable_source_metadata": true,
+    "timeout_seconds": 30,
+    "maximum_response_bytes": 1048576,
+    "maximum_query_characters": 400,
+    "maximum_query_words": 50,
+    "maximum_evidence_characters": 7200,
+    "maximum_evidence_characters_per_url": 1800,
+    "maximum_results_per_hostname": 1
+  },
+  "data_handling": {
+    "enabled_by_default": false,
+    "result_storage": "request_memory_only",
+    "remote_inference": false,
+    "sends": [
+      "derived_search_query"
+    ],
+    "must_not_send": [
+      "conversation_history",
+      "plithos_evidence",
+      "local_documents",
+      "device_identifier",
+      "precise_location"
+    ]
+  },
+  "terms_url": "https://api-dashboard.search.brave.com/documentation/resources/terms-of-service",
+  "privacy_url": "https://api-dashboard.search.brave.com/privacy-policy"
+}

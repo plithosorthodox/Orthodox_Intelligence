@@ -34,6 +34,50 @@ rather than a project-owned password database. Exact providers, retention, accou
 deletion, recovery, and offline entitlement behavior remain open implementation
 decisions requiring privacy and threat review.
 
+## Source choice and optional Web evidence
+
+The chat surface offers two understandable source choices:
+
+- **Local only** uses the installed Plithos library and never makes an outbound
+  search request.
+- **Automatic** tries the local library first and may search the Web only when
+  the local evidence does not adequately cover the question and a provider has
+  been explicitly configured.
+
+The current provisional provider is Brave LLM Context. It supplies source chunks
+and metadata only; Sofiia still generates the answer on the user's device, and
+Uvaha applies the same evidence-reference and quotation checks. Uvaha does not
+use a remote answer-generation service. The server does not cache the provider
+bundle or add it to Plithos, training, or evaluation. Before an answer is
+retained in a browser chat, Web-origin source cards are filtered from the local
+transcript. The saved answer may carry a note that its Web sources were
+transient, but not their result bodies or source metadata.
+
+Automatic sourcing is not an offline feature. Its bounded search terms leave the
+device, and the standard provider service may retain queries for billing and
+troubleshooting. It requires a provider account and API key and may incur usage
+charges. Before distribution, Uvaha needs an approved choice between bring-your-
+own credentials and a managed service, a plain-language first-use notice,
+credential storage appropriate to the platform, provider terms/privacy review,
+and a usable Local only path that requires none of them.
+
+## Conversation sessions
+
+The browser prototype already presents separate chat sessions that the user can
+create, switch between, archive, restore, and delete. Context from one session
+must not silently enter another. Archive is a reversible organization action;
+delete is a distinct, confirmed removal action with clearly documented backup
+limits.
+
+Sessions remain on the device by default, are excluded from model training and
+analytics, and do not require an account in this prototype. They are serialized
+to the browser's `localStorage`, which is not encrypted by Uvaha and may be
+visible to other software or users with access to that browser profile. Browser
+clearing, storage quotas, private browsing, backups, and extensions can affect
+retention. Cloud synchronization, cross-device history, sharing, or voluntary
+contribution each require a separate opt-in data flow; deletion cannot promise
+erasure from copies outside the browser's stored session state.
+
 ## Capability tiers
 
 | Tier | Intended capability | Boundary that does not change |

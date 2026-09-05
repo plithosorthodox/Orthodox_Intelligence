@@ -99,10 +99,25 @@ def _validate_loopback_endpoint(endpoint: str) -> str:
 _GROUNDED_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["answer", "citations", "quotes", "abstain"],
+    "required": ["answer", "quotes", "abstain"],
     "properties": {
-        "answer": {"type": "string"},
-        "citations": {"type": "array", "items": {"type": "string"}},
+        "answer": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["text", "citations"],
+                "properties": {
+                    "text": {"type": "string"},
+                    "citations": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+        },
         "quotes": {
             "type": "array",
             "items": {
@@ -139,7 +154,7 @@ class LlamaCppServerRuntime:
         self.endpoint = _validate_loopback_endpoint(endpoint)
         self.model = model or load_selected_model()
         self.timeout_seconds = timeout_seconds
-        grammar_path = Path(__file__).resolve().parent.parent / "config" / "sofiia_grounded.v0.1.gbnf"
+        grammar_path = Path(__file__).resolve().parent.parent / "config" / "sofiia_grounded.v0.2.gbnf"
         if not grammar_path.is_file():
             raise ModelRuntimeError(f"grounded grammar is missing: {grammar_path}")
         self.grammar = grammar_path.read_text(encoding="utf-8")
@@ -195,7 +210,7 @@ class LlamaCppServerRuntime:
             "temperature": request.temperature,
             "stream": False,
             # Constrain decoding with a GBNF grammar, loaded from
-            # config/sofiia_grounded.v0.1.gbnf, which carries the reasoning.
+            # config/sofiia_grounded.v0.2.gbnf, which carries the reasoning.
             # In short: response_format json_object is accepted by this
             # llama-server build and not enforced - measured, byte-identical
             # output with and without it - while a grammar is enforced. The
@@ -220,7 +235,7 @@ class LlamaCppServerRuntime:
             body.pop("grammar", None)
             body["response_format"] = {
                 "type": "json_schema",
-                "json_schema": {"name": "sofiia_grounded", "strict": True,
+                "json_schema": {"name": "sofiia_grounded_v0_2", "strict": True,
                                 "schema": _GROUNDED_SCHEMA},
             }
             try:

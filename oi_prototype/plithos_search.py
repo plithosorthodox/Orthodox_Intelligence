@@ -13,6 +13,7 @@ installed Plithos SQLite/FTS5 artifact.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import contextmanager
 from pathlib import Path
 import re
 import sqlite3
@@ -191,6 +192,12 @@ class CorpusSearch:
 
     def close(self) -> None:
         self.db.close()
+
+    @contextmanager
+    def connection(self):
+        """Serialize every use of the shared read-only SQLite connection."""
+        with self._lock:
+            yield self.db
 
     def __enter__(self):
         return self
