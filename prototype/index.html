@@ -10,60 +10,56 @@
   <title>Uvaha</title>
 </head>
 <body>
-  <aside id="session-drawer" class="session-drawer" aria-label="Chat sessions" hidden>
-    <div class="drawer-heading">
-      <h2>Chats</h2>
-      <button id="sessions-close" class="quiet-button" type="button" aria-label="Close chats">Close</button>
-    </div>
-    <button id="new-session" class="new-session" type="button">New chat</button>
-    <nav class="session-navigation" aria-label="Saved chats">
-      <h3>Recent</h3>
-      <ul id="session-list" class="session-list"></ul>
-      <details id="archived-sessions" class="archived-sessions">
-        <summary>Archived <span id="archived-count" class="session-count">0</span></summary>
-        <ul id="archived-session-list" class="session-list"></ul>
-      </details>
-    </nav>
-    <p id="storage-status" class="storage-status" role="status">Saved only in this browser.</p>
-  </aside>
-  <button id="session-scrim" class="drawer-scrim" type="button" aria-label="Close chats" hidden></button>
-  <header class="masthead">
-    <div class="masthead-left">
-      <button id="sessions-toggle" class="quiet-button" type="button" aria-controls="session-drawer" aria-expanded="false">Chats</button>
-      <a class="brand" href="/" aria-label="Uvaha home">Uvaha</a>
-    </div>
-    <div class="status" id="status" aria-live="polite">Starting…</div>
-  </header>
-  <main>
-    <section class="conversation" aria-label="Conversation">
+  <div class="app">
+    <aside id="session-drawer" class="session-drawer" aria-label="Chat sessions">
+      <div class="drawer-heading">
+        <span class="brand">Uvaha</span>
+        <button id="sessions-close" class="icon-button" type="button" aria-label="Hide chats">&#8249;</button>
+      </div>
+      <button id="new-session" class="new-session" type="button">New chat</button>
+      <nav class="session-navigation" aria-label="Saved chats">
+        <h3>Recent</h3>
+        <ul id="session-list" class="session-list"></ul>
+        <details id="archived-sessions" class="archived-sessions">
+          <summary>Archived <span id="archived-count" class="session-count">0</span></summary>
+          <ul id="archived-session-list" class="session-list"></ul>
+        </details>
+      </nav>
+      <div class="drawer-foot">
+        <details class="utility">
+          <summary>About this build</summary>
+          <p id="about-copy">Uvaha answers from sources on this computer, and shows you which ones. It is not a person and holds no faith of its own.</p>
+          <dl id="versions"></dl>
+          <p id="corpus-summary"></p>
+        </details>
+        <p id="storage-status" class="storage-status" role="status">Chats are saved only in this browser.</p>
+      </div>
+    </aside>
+    <button id="session-scrim" class="drawer-scrim" type="button" aria-label="Hide chats" hidden></button>
+    <div class="pane">
+      <header class="masthead">
+        <button id="sessions-toggle" class="icon-button" type="button" aria-controls="session-drawer" aria-expanded="true" aria-label="Show chats">&#9776;</button>
+        <span class="pane-title" id="pane-title">New chat</span>
+        <span class="status" id="status" aria-live="polite">Starting</span>
+      </header>
       <div id="messages" class="messages" aria-live="polite"></div>
       <form id="ask-form" class="composer">
-        <label for="question">Ask anything</label>
         <div class="composer-row">
-          <textarea id="question" name="question" rows="2" maxlength="4000" placeholder="Start a conversation" required></textarea>
-          <button type="submit">Ask</button>
+          <label class="visually-hidden" for="question">Your message</label>
+          <textarea id="question" name="question" rows="1" maxlength="4000" placeholder="Ask anything" required></textarea>
+          <button id="send" type="submit" aria-label="Send">Send</button>
         </div>
         <div class="composer-options">
-          <label class="source-choice" for="source-mode">Sources</label>
-          <select id="source-mode" name="source_mode" aria-label="Sources">
-            <option value="automatic" disabled>Automatic</option>
-            <option value="local_only" selected>Local library only</option>
+          <label class="visually-hidden" for="source-mode">Sources</label>
+          <select id="source-mode" name="source_mode">
+            <option value="automatic" disabled>Local and web</option>
+            <option value="local_only" selected>Local only</option>
           </select>
+          <span class="composer-hint">Enter sends &middot; Shift+Enter for a new line</span>
         </div>
       </form>
-    </section>
-    <section class="utility" aria-label="Application information">
-      <details>
-        <summary>About</summary>
-        <p id="about-copy">Uvaha answers with sources you can inspect.</p>
-      </details>
-      <details>
-        <summary>Diagnostics</summary>
-        <dl id="versions"></dl>
-        <p id="corpus-summary"></p>
-      </details>
-    </section>
-  </main>
+    </div>
+  </div>
   <script src="/app.js" defer></script>
 </body>
 </html>

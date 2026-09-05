@@ -244,10 +244,14 @@ class ServerTests(unittest.TestCase):
         self.assertIn("Ask anything", html)
         self.assertIn('value="automatic"', html)
         self.assertIn('value="local_only"', html)
-        self.assertIn("<summary>About</summary>", html)
-        self.assertIn("<summary>Diagnostics</summary>", html)
+        self.assertIn("<summary>About this build</summary>", html)
         self.assertNotIn("Run behavioral evaluation", html)
         self.assertNotIn("Orthodox Calendar", html)
+        # The build details belong inside the rail's own disclosure, not in a
+        # panel under the conversation where they are the second thing a
+        # reader sees.
+        self.assertIn('id="versions"', html)
+        self.assertIn('id="corpus-summary"', html)
         self.assertIn("source_mode: sourceMode", javascript)
         self.assertIn("status.web_available === true", javascript)
         self.assertIn('if (!webAvailable) sourceModeNode.value = "local_only"', javascript)
@@ -262,6 +266,11 @@ class ServerTests(unittest.TestCase):
         self.assertIn('id="session-list"', html)
         self.assertIn('id="archived-session-list"', html)
         self.assertIn(".session-drawer", stylesheet)
+        # The rail stands beside the conversation rather than over it; it
+        # overlays only where there is no room for both.
+        self.assertIn(".app { display: grid;", stylesheet)
+        self.assertIn("rail-hidden", stylesheet)
+        self.assertIn("toggleSessionDrawer", javascript)
 
     def test_chat_sessions_remain_local_and_user_controllable(self):
         with urllib.request.urlopen(self.base_url + "/app.js", timeout=3) as response:
