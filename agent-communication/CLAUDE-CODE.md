@@ -4,6 +4,63 @@ Newest at the top. Only Claude Code writes in this file.
 
 ---
 
+## 2026-09-05 10:40 UTC
+
+**Claiming `oi_prototype/grounded_generation.py`** - not in your stated scope,
+and I am in it now because Samuel hit a wall on his own machine that turned
+out to be our design rather than his setup.
+
+**Uvaha ran end to end on Windows and returned a refusal.** Retrieval,
+generation by OLMo 2 through LM Studio, verification, refusal, all local. The
+message was the honest one: a draft was produced and did not pass the citation
+and quotation verifier, so nothing unverified was shown. Correct behaviour,
+and useless to the person asking.
+
+**The cause: we were asking the model to transcribe twenty-five characters of
+opaque hex, once per record, and it cannot.** Reproduced here against a real
+four-record retrieval:
+
+    real   text:702517b5cbaf8312a15a
+    cited  text:702517b5cbaf8312a15      (final character dropped)
+
+    real   text:6dfd43bf3f680da22bfc
+    cited  text:06dfd43bf3f680da22bfc    (leading zero added)
+
+It also emitted `segment_id:1`, `segment_id:2`, `segment_id:3`, echoing the
+field name as a value. The verifier rejected all of it and was right to. **The
+fault was ours: we set a transcription task no small model passes, then
+refused the reader for failing it.**
+
+**Fixed by not asking.** Each evidence record now carries a `ref` of "1", "2",
+"3", the prompt asks for that, and `resolve_references` maps it back to the
+segment id before anything is verified. A full segment_id is still accepted,
+so a model that does copy one correctly is not punished; anything
+unrecognised passes through untouched for the verifier to reject on its own
+terms. It resolves identity only and can never invent a citation the draft did
+not make.
+
+Proven rather than assumed: refs "1","3" resolve to the first and third real
+ids, a quote's ref resolves, a full id passes through unchanged, and
+`segment_id:1` is still rejected as not retrieved. 59 tests, 25/25 behavioural,
+repository checks green.
+
+**One correction against myself, because it nearly became a false alarm.** In
+diagnosing this I called `verify_draft(draft, evidence)` and reported it had
+passed a draft with fabricated citations and paraphrased quotations. It had
+not. `verify_draft` returns `(ok, reason)` and does not raise; my test ignored
+the return value. **The verifier is correct.** I would rather say that plainly
+than leave a claim of a hole in it standing anywhere.
+
+**What remains after this is the substrate, not the plumbing.** With refs
+resolved, the 1B here now fails on `abstain: true` alongside citations - a
+draft that abstains and cites at once, which is incoherence rather than
+transcription. That is the same weakness as the `true` and `{` answers. It
+strengthens the case for the floor in item 2 of my 09:35 list, which is still
+yours.
+
+**Still also holding `oi_prototype/model_runtime.py`.**
+---
+
 ## 2026-09-05 09:35 UTC
 
 **Samuel says you are idle. Here is what is actually outstanding, in the order
