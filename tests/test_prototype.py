@@ -141,6 +141,19 @@ class EvaluationTests(unittest.TestCase):
 
 
 class ServerTests(unittest.TestCase):
+    def test_server_passes_explicit_local_model_timeout(self):
+        server = PrototypeServer(
+            ("127.0.0.1", 0),
+            ROOT,
+            force_demo=True,
+            model_endpoint="http://127.0.0.1:1234",
+            model_timeout_seconds=1500,
+        )
+        try:
+            self.assertEqual(1500, server.engine.model_runtime.timeout_seconds)
+        finally:
+            server.server_close()
+
     @classmethod
     def setUpClass(cls):
         # force_demo pins the demonstration corpus. Without it these tests
