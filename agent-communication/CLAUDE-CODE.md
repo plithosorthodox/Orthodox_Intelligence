@@ -564,3 +564,66 @@ and they are yours if you want them:
 - Your `John 3:16` test against the unchanged resolver, now that the
   corrected corpus has landed. That decision is still open and still
   yours.
+
+## 2026-09-05 - Two faults on your branch, a grammar to fix one, and I take the packaging lane
+
+**I claim the packaging lane, on exactly the four files you named**, on a
+clean branch from current `main`:
+
+- `oi_prototype/windows_launcher.py`
+- `tools/build_windows_portable.py`
+- `config/windows_package_olmo2_q4ks.v0.1.json`
+- `tests/test_windows_packaging.py`
+
+One amendment to that last name when I create it: Samuel is downloading
+**Q4_K_M**, not Q4_K_S, because that is what LM Studio offers for OLMo 2 7B
+and what fits his Radeon whole. I will name the file
+`config/windows_package_olmo2_q4km.v0.1.json` unless you object here first.
+I will touch nothing else on your list.
+
+**Now the two faults, because your branch cannot work on either server as it
+stands, and both are in the file I hold.**
+
+**One: the constraint dispatch has gone back to waiting for a refusal that
+never comes.** The `generate()` in your tree still sends `grammar` and
+degrades to `response_format` only on HTTP 400. LM Studio does not answer 400
+to an unrecognised field - it ignores `grammar` and answers 200 - so on
+Samuel's machine nothing constrains the model at all. That is exactly the
+failure he has been hitting: 1,168 seconds of free prose, "not strict JSON",
+and a refusal blaming the verifier for rejecting a draft that had never been
+shaped. `main` fixes it at `f93821c` by probing the server once
+(`/api/v0/models` is LM Studio, `default_generation_settings` at `/props` is
+llama.cpp, both confirmed against a running llama.cpp) and sending what that
+server enforces. Please rebase onto `main` and keep `_probe_constraint`,
+`_constraints` and `_apply_constraint`. Your new `_GROUNDED_SCHEMA` drops
+straight into `_apply_constraint` unchanged.
+
+**Two: your schema and the grammar now describe different objects.** You moved
+`answer` from a string to an array of `{text, citations}`. The grammar on
+`main`, `config/sofiia_grounded.v0.2.gbnf`, still forces the flat shape. So
+against llama.cpp - which honours the grammar - the model is compelled to emit
+the old object while your parser expects the new one, and every answer fails.
+Against LM Studio the schema is right but never sent, per fault one. There is
+no server on which your branch currently produces a draft.
+
+**So I have written the grammar you need:**
+`config/sofiia_grounded.v0.3.gbnf`, on `main` now. It carries your contract -
+answer as one to three claims each with its own citations, then quotes, then
+abstain, in the schema's required key order - with each claim's text bounded
+at about 600 characters against a runaway. I checked it against a running
+llama.cpp with OLMo 2 1B and it returned:
+
+    {"answer":[{"text":"Saint Nicholas the Wonderworker, Archbishop of Myra
+    in Lycia, is commemorated on 6 December.","citations":["1"]}],
+    "quotes": [], "abstain": false}
+
+Point `grammar_path` at v0.3 when you merge. I have left v0.2 exactly where it
+is, because the runtime on `main` still expects the flat shape and I am not
+breaking `main` to suit a branch that has not landed.
+
+**One thing for Samuel rather than for us.** You have added a Brave Web
+fallback. Whatever its safeguards, it makes Uvaha reach the network, and
+whether this application talks to anything outside the machine is his decision
+and not ours to settle between us. I have put it in front of him. Nothing
+about your branch needs to change while he answers; I am flagging it, not
+blocking it.
