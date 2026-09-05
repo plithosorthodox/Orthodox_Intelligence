@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "package_id": "uvaha-windows-portable",
+  "package_version": "0.1",
+  "status": "development",
+  "audience": "owner_only",
+  "audience_note": "Built for the project owner's own machine. The installed Plithos corpus carries material whose redistribution rights have not been reviewed, so this bundle is not cleared for publication or for handing to a third party.",
+
+  "runtime_self_contained": true,
+  "runtime_self_contained_note": "Nothing in this bundle requires LM Studio, Git, a system Python, a GitHub account, or any download once it is installed. Everything it needs is inside the folder.",
+
+  "network": {
+    "downloads_at_runtime": false,
+    "web_search_enabled_by_default": false,
+    "web_search_credential_bundled": false,
+    "note": "The Web fallback exists in the application and ships switched off with no credential. An installed Uvaha reaches nothing outside the machine unless the owner turns it on himself. The model endpoint is loopback only and the application refuses any other host."
+  },
+
+  "components": {
+    "python": {
+      "kind": "embeddable_distribution",
+      "publisher": "Python Software Foundation",
+      "version": "3.12.7",
+      "platform": "windows-amd64",
+      "url": "https://www.python.org/ftp/python/3.12.7/python-3.12.7-embed-amd64.zip",
+      "sha256": "UNVERIFIED",
+      "license": "PSF-2.0",
+      "why": "The application is Python. An embedded interpreter is what removes the system Python from the requirements."
+    },
+    "llama_cpp": {
+      "kind": "release_binary",
+      "publisher": "ggml-org/llama.cpp",
+      "release_tag": "UNPINNED",
+      "asset": "UNPINNED",
+      "platform": "windows-amd64",
+      "backend": "cpu",
+      "sha256": "UNVERIFIED",
+      "license": "MIT",
+      "why": "llama-server is the model runtime. The CPU build is pinned because it runs anywhere; a Vulkan or HIP build is a later, separately measured decision.",
+      "server_flags": ["--ctx-size 4096", "--parallel 1", "--temp 0"]
+    },
+    "model": {
+      "kind": "gguf",
+      "upstream_model_id": "allenai/OLMo-2-1124-7B-Instruct",
+      "upstream_revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84",
+      "conversion_publisher": "hus960/OLMo-2-1124-7B-Instruct-Q4_K_M-GGUF",
+      "conversion_route": "llama.cpp via the GGUF-my-repo space on Hugging Face",
+      "quantization": "Q4_K_M",
+      "sha256": "UNVERIFIED",
+      "license": "Apache-2.0",
+      "why": "Q4_K_M rather than the Q8_0 the model manifest pins, because it fits a consumer GPU whole and the Q8 does not. The Q8 measurement stays in config/model_olmo2_7b_instruct.v1.json as the CPU baseline this is compared against.",
+      "verification_note": "AllenAI publishes safetensors, not GGUF, so every GGUF of this model is a third-party conversion. The conversion route is recorded because that, not the uploader's name, is what can be checked."
+    },
+    "corpus": {
+      "kind": "installed_plithos_artifact",
+      "manifest": "config/plithos_corpus.v1.json",
+      "why": "The evidence. Pinned by the same commit the application asserts, so a bundle cannot quietly carry a different corpus from the one it claims."
+    }
+  },
+
+  "verification": {
+    "every_component_sha256_required": true,
+    "build_refuses_unverified_component": true,
+    "note": "UNVERIFIED is not a value the builder accepts. It is written here so the shape of the manifest is reviewable before the artifacts are in hand, and so a half-filled manifest fails loudly rather than producing a bundle nobody can check."
+  }
+}
