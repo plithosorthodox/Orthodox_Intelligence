@@ -115,6 +115,11 @@ This is not yet a semantic entailment verifier. The current deterministic gate
 proves citation membership and exact quotation provenance; broader unsupported-
 claim detection remains a separate evaluation and engineering problem.
 
+## Running it on Windows
+
+See `docs/RUNNING_ON_WINDOWS.md` for a from-nothing setup: the local model
+server, the corpus, and Uvaha itself.
+
 ## Validate the scaffold
 
 ```bash
