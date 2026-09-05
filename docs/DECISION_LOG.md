@@ -179,3 +179,23 @@ earlier one superseded; history is not rewritten.
 - **Privacy:** The development model adapter accepts loopback HTTP only and has no
   remote fallback. A generated prompt may be sent to the local model process on
   the same device, but not to a remote inference service.
+
+## OI-015 - Reject vacuous answers before treating them as verified
+
+- **Date:** 2026-09-05
+- **Status:** Accepted for v0.1 development
+- **Decision:** A non-abstaining Sofiia draft must clear a deterministic
+  non-vacuity floor in addition to the existing citation and quotation checks.
+  The verifier rejects bare literals and punctuation fragments, one-word
+  fragments, and answers that merely repeat a cited segment identifier. A
+  failure uses the existing single bounded correction; a repeated failure
+  becomes an abstention.
+- **Reason:** A live OLMo 2 1B run produced outputs such as `true` and `{` that
+  carried genuine segment identifiers and exact registered quotes, so the
+  structural verifier accepted them even though they conveyed no usable answer.
+  Citation integrity is necessary but does not establish that an answer says
+  anything.
+- **Limit:** This floor detects obvious vacuity only. It does **not** prove
+  semantic entailment, factual completeness, or claim-level support. OI-014's
+  entailment limitation remains in force and requires separate engineering and
+  evaluation work.
