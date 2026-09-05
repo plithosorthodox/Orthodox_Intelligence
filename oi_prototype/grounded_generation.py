@@ -15,6 +15,11 @@ GENERATION_CONTRACT = "sofiia-grounded-json-v0.1"
 MAX_EVIDENCE_CHARS = 18_000
 MAX_EVIDENCE_RECORDS = 8
 _QUOTED_SPAN = re.compile(r'["“](.{12,}?)["”]', re.DOTALL)
+_ANSWER_WORD = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)*", re.UNICODE)
+_BARE_ANSWER_LITERALS = frozenset(
+    {"true", "false", "null", "none", "yes", "no", "{", "}", "{}", "[", "]", "[]"}
+)
+_MINIMUM_ANSWER_WORDS = 2
 
 
 class GroundedGenerationError(RuntimeError):
@@ -69,6 +74,30 @@ def _pack_evidence(evidence: tuple[Evidence, ...]) -> tuple[Evidence, ...]:
     return tuple(selected)
 
 
+def _answer_words(value: str) -> tuple[str, ...]:
+    return tuple(word.casefold() for word in _ANSWER_WORD.findall(value))
+
+
+def _answer_substance_failure(draft: GroundedDraft) -> str | None:
+    """Return a deterministic failure for obviously vacuous non-abstaining output.
+
+    This is intentionally only a non-vacuity floor. It does not attempt to prove
+    that the answer's claims are semantically entailed by the cited evidence.
+    """
+    answer = draft.answer.strip()
+    if answer.casefold() in _BARE_ANSWER_LITERALS:
+        return "non-abstaining answer is a bare literal rather than a substantive answer"
+
+    words = _answer_words(answer)
+    if len(words) < _MINIMUM_ANSWER_WORDS:
+        return "non-abstaining answer is too short to be minimally substantive"
+
+    for segment_id in draft.citations:
+        if words == _answer_words(segment_id):
+            return "non-abstaining answer only repeats a citation identifier"
+    return None
+
+
 def build_generation_request(
     question: str,
     evidence: tuple[Evidence, ...],
@@ -86,6 +115,7 @@ If the evidence is insufficient, abstain rather than fill gaps.
 Return exactly one JSON object and no markdown or surrounding prose using this schema:
 {{"answer":"string","citations":["segment_id"],"quotes":[{{"segment_id":"segment_id","text":"exact source substring"}}],"abstain":false}}
 Every non-abstaining answer must cite at least one supplied segment_id.
+A non-abstaining answer must be substantive natural-language prose; do not return a bare literal, boolean, punctuation fragment, or only a citation identifier.
 Any direct quotation used in the answer must appear in quotes and must be copied exactly from the cited evidence.
 Do not quote Scripture, liturgical text, or another exact-text source from memory.
 Contract: {GENERATION_CONTRACT}."""
@@ -175,6 +205,10 @@ def verify_draft(
     unknown = [segment_id for segment_id in draft.citations if segment_id not in by_id]
     if unknown:
         return False, "answer cited a segment that was not retrieved"
+
+    substance_failure = _answer_substance_failure(draft)
+    if substance_failure:
+        return False, substance_failure
 
     quote_texts: list[str] = []
     for quote in draft.quotes:
